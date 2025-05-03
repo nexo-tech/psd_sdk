@@ -19,18 +19,17 @@ int sizeof<T extends NumDataType>() {
 }
 
 void setByteData<T extends NumDataType>(ByteData data, num value,
-    [Endian endian]) {
+    [Endian? endian]) {
   endian ??= Endian.host;
   switch (T) {
     case U16:
-      data.setUint16(0, value, endian);
+      data.setUint16(0, value.toInt(), endian);
       break;
     case U8:
-      data.setUint8(0, value);
+      data.setUint8(0, value.toInt());
       break;
     default:
       throw Error();
-      break;
   }
 }
 
@@ -44,29 +43,29 @@ class TgaType {
 
 class TgaHeader {
   /* uint8_t */
-  int idLength;
+  int? idLength;
   /* uint8_t */
-  int paletteType;
+  int? paletteType;
   /* uint8_t */
-  int type;
+  int? type;
   /* uint16_t */
-  int paletteOffset;
+  int? paletteOffset;
   /* uint16_t */
-  int paletteLength;
+  int? paletteLength;
   /* uint8_t */
-  int bitsPerPaletteEntry;
+  int? bitsPerPaletteEntry;
   /* uint16_t */
-  int originX;
+  int? originX;
   /* uint16_t */
-  int originY;
+  int? originY;
   /* uint16_t */
-  int width;
+  int? width;
   /* uint16_t */
-  int height;
+  int? height;
   /* uint8_t */
-  int bitsPerPixel;
+  int? bitsPerPixel;
   /* uint8_t */
-  int attributes;
+  int? attributes;
 }
 
 TgaHeader createHeader(int width, int height, int type, int bitsPerPixel) {
@@ -90,9 +89,7 @@ class TgaFile {
   String filename;
   io.File _file;
 
-  TgaFile(this.filename) {
-    _file = io.File(filename);
-  }
+  TgaFile(this.filename) : _file = io.File(filename) {}
 
   void write<T extends NumDataType>(num value) {
     var length = sizeof<T>();
@@ -105,18 +102,18 @@ class TgaFile {
   }
 
   void writeHeader(TgaHeader header) {
-    write<U8>(header.idLength);
-    write<U8>(header.paletteType);
-    write<U8>(header.type);
-    write<U16>(header.paletteOffset);
-    write<U16>(header.paletteLength);
-    write<U8>(header.bitsPerPaletteEntry);
-    write<U16>(header.originX);
-    write<U16>(header.originY);
-    write<U16>(header.width);
-    write<U16>(header.height);
-    write<U8>(header.bitsPerPixel);
-    write<U8>(header.attributes);
+    write<U8>(header.idLength ?? 0);
+    write<U8>(header.paletteType ?? 0);
+    write<U8>(header.type ?? 0);
+    write<U16>(header.paletteOffset ?? 0);
+    write<U16>(header.paletteLength ?? 0);
+    write<U8>(header.bitsPerPaletteEntry ?? 0);
+    write<U16>(header.originX ?? 0);
+    write<U16>(header.originY ?? 0);
+    write<U16>(header.width ?? 0);
+    write<U16>(header.height ?? 0);
+    write<U8>(header.bitsPerPixel ?? 0);
+    write<U8>(header.attributes ?? 0);
   }
 
   var list = <int>[];
@@ -127,15 +124,18 @@ class TgaFile {
   }
 
   bool close() {
+    if (_bytes == null) {
+      return false;
+    }
     try {
-      _file.writeAsBytesSync(_bytes);
+      _file.writeAsBytesSync(_bytes!);
       return true;
     } catch (e) {
       return false;
     }
   }
 
-  Uint8List _bytes;
+  Uint8List? _bytes;
 }
 
 TgaFile createFile(String filename) {

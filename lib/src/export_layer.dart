@@ -5,13 +5,13 @@ class ExportLayer {
   // the SDK currently supports R, G, B, A
   static const int MAX_CHANNEL_COUNT = 4;
 
-  int top;
-  int left;
-  int bottom;
-  int right;
-  String name;
+  int? top;
+  int? left;
+  int? bottom;
+  int? right;
+  String? name;
 
-  var channelData = List<Uint8List>(MAX_CHANNEL_COUNT);
+  var channelData = List<Uint8List?>.filled(MAX_CHANNEL_COUNT, null);
   var channelSize = Uint32List(MAX_CHANNEL_COUNT);
   var channelCompression = Uint16List(MAX_CHANNEL_COUNT);
 }

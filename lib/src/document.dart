@@ -8,11 +8,11 @@ class Document {
         layerMaskInfoSection = Section(),
         imageDataSection = Section();
 
-  int width;
-  int height;
-  int channelCount;
-  int bitsPerChannel;
-  int colorMode;
+  int? width;
+  int? height;
+  int? channelCount;
+  int? bitsPerChannel;
+  int? colorMode;
 
   /// Color mode data section.
   Section colorModeDataSection;

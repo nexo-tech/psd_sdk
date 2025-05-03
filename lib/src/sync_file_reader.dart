@@ -21,19 +21,19 @@ class SyncFileReader {
   }
 
   int readUint32([Endian endian = Endian.big]) {
-    final value = _file.byteData.getUint32(_position, endian);
+    final value = _file.byteData?.getUint32(_position, endian);
     _position += _uint32Size;
-    return value;
+    return value ?? 0;
   }
 
   int readUint16([Endian endian = Endian.big]) {
-    final value = _file.byteData.getUint16(_position, endian);
+    final value = _file.byteData?.getUint16(_position, endian);
     _position += _uint16Size;
-    return value;
+    return value ?? 0;
   }
 
-  Uint8List readBytes(int number) {
-    final list = _file.buffer.asUint8List(_position, number);
+  Uint8List? readBytes(int number) {
+    final list = _file.buffer?.asUint8List(_position, number);
     _position += number;
     return list;
   }
@@ -45,9 +45,9 @@ class SyncFileReader {
   int getPosition() => _position;
 
   int readByte([Endian endian = Endian.big]) {
-    final value = _file.byteData.getUint8(_position);
+    final value = _file.byteData?.getUint8(_position);
     _position += 1;
-    return value;
+    return value ?? 0;
   }
 
   int readInt16([Endian endian = Endian.big]) {

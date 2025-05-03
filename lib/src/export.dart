@@ -94,7 +94,7 @@ int addAlphaChannel(ExportDocument document, String name, int r, int g, int b,
   document.alphaChannels.add(AlphaChannel());
 
   var channel = document.alphaChannels[index];
-  channel.asciiName = name;
+  channel!.asciiName = name;
   channel.colorSpace = 0;
   channel.color[0] = r;
   channel.color[1] = g;
@@ -141,6 +141,12 @@ void updateMergedImage(ExportDocument document, TypedData planarDataR,
 
 /// Exports a document to the given file.
 void writeDocument(ExportDocument document, File file) {
+  if (document.width == null ||
+      document.height == null ||
+      document.bitsPerChannel == null ||
+      document.colorMode == null) {
+    throw ArgumentError('Document is not fully initialized');
+  }
   var writer = SyncFileWriter(file);
 
   // signature
@@ -155,15 +161,15 @@ void writeDocument(ExportDocument document, File file) {
 
   // channel count
   final documentChannelCount =
-      (document.colorMode + document.alphaChannelCount);
+      (document.colorMode ?? 0 + document.alphaChannelCount);
   _writeToFileBE<Uint16T>(writer, documentChannelCount);
 
   // header
   final mode = (document.colorMode);
-  _writeToFileBE<Uint32T>(writer, document.height);
-  _writeToFileBE<Uint32T>(writer, document.width);
-  _writeToFileBE<Uint16T>(writer, document.bitsPerChannel);
-  _writeToFileBE<Uint16T>(writer, mode);
+  _writeToFileBE<Uint32T>(writer, document.height ?? 0);
+  _writeToFileBE<Uint32T>(writer, document.width ?? 0);
+  _writeToFileBE<Uint16T>(writer, document.bitsPerChannel ?? 0);
+  _writeToFileBE<Uint16T>(writer, mode ?? 0);
 
   if (document.bitsPerChannel == 32) {
     // in 32-bit mode, Photoshop insists on having a color mode data section with magic info.
@@ -292,14 +298,14 @@ void writeDocument(ExportDocument document, File file) {
           writer.write(_XMP_HEADER, _XMP_HEADER.length);
           for (var i = 0; i < document.attributeCount; ++i) {
             writer.write('<xmp:', 5);
-            writer.write(document.attributes[i].name,
-                ((document.attributes[i].name).length));
+            writer.write(document.attributes?[i].name,
+                ((document.attributes?[i].name)?.length ?? 0));
             writer.write('>', 1);
-            writer.write(document.attributes[i].value,
-                ((document.attributes[i].value).length));
+            writer.write(document.attributes?[i].value,
+                ((document.attributes?[i].value)?.length ?? 0));
             writer.write('</xmp:', 6);
-            writer.write(document.attributes[i].name,
-                ((document.attributes[i].name).length));
+            writer.write(document.attributes?[i].name,
+                ((document.attributes?[i].name)?.length ?? 0));
             writer.write('>\n', 2);
           }
           writer.write(_XMP_FOOTER, _XMP_FOOTER.length);
@@ -349,21 +355,22 @@ void writeDocument(ExportDocument document, File file) {
           final bitsPerPixel = 24;
           final planeCount = 1;
           final widthInBytes =
-              (document.thumbnail.width * bitsPerPixel + 31) / 32 * 4;
+              ((document.thumbnail?.width ?? 0) * bitsPerPixel + 31) / 32 * 4;
           final totalSize =
-              widthInBytes * document.thumbnail.height * planeCount;
+              widthInBytes * (document.thumbnail?.height ?? 0) * planeCount;
 
           _writeToFileBE<Uint32T>(writer, format);
-          _writeToFileBE<Uint32T>(writer, document.thumbnail.width);
-          _writeToFileBE<Uint32T>(writer, document.thumbnail.height);
+          _writeToFileBE<Uint32T>(writer, document.thumbnail?.width ?? 0);
+          _writeToFileBE<Uint32T>(writer, document.thumbnail?.height ?? 0);
           _writeToFileBE<Uint32T>(writer, widthInBytes);
           _writeToFileBE<Uint32T>(writer, totalSize);
-          _writeToFileBE<Uint32T>(writer, document.thumbnail.binaryJpegSize);
+          _writeToFileBE<Uint32T>(
+              writer, document.thumbnail?.binaryJpegSize ?? 0);
           _writeToFileBE<Uint16T>(writer, bitsPerPixel);
           _writeToFileBE<Uint16T>(writer, planeCount);
 
-          writer.write(
-              document.thumbnail.binaryJpeg, document.thumbnail.binaryJpegSize);
+          writer.write(document.thumbnail?.binaryJpeg,
+              document.thumbnail?.binaryJpegSize ?? 0);
         }
         final bytesWritten = writer.getPosition() - start;
         if (bytesWritten & 1 != 0) {
@@ -386,13 +393,16 @@ void writeDocument(ExportDocument document, File file) {
           // per channel data
           for (var i = 0; i < document.alphaChannelCount; ++i) {
             var channel = document.alphaChannels[i];
-            _writeToFileBE<Uint16T>(writer, channel.colorSpace);
+            if (channel == null) {
+              continue;
+            }
+            _writeToFileBE<Uint16T>(writer, channel.colorSpace ?? 0);
             _writeToFileBE<Uint16T>(writer, channel.color[0]);
             _writeToFileBE<Uint16T>(writer, channel.color[1]);
             _writeToFileBE<Uint16T>(writer, channel.color[2]);
             _writeToFileBE<Uint16T>(writer, channel.color[3]);
-            _writeToFileBE<Uint16T>(writer, channel.opacity);
-            _writeToFileBE<Uint8T>(writer, channel.mode);
+            _writeToFileBE<Uint16T>(writer, channel.opacity ?? 0);
+            _writeToFileBE<Uint8T>(writer, channel.mode ?? 0);
           }
 
           final bytesWritten = writer.getPosition() - start;
@@ -411,9 +421,9 @@ void writeDocument(ExportDocument document, File file) {
 
           for (var i = 0; i < document.alphaChannelCount; ++i) {
             _writeToFileBE<Uint8T>(
-                writer, (document.alphaChannels[i].asciiName.length));
-            writer.write(document.alphaChannels[i].asciiName,
-                (document.alphaChannels[i].asciiName.length));
+                writer, (document.alphaChannels[i]?.asciiName?.length ?? 0));
+            writer.write(document.alphaChannels[i]?.asciiName,
+                (document.alphaChannels[i]?.asciiName?.length ?? 0));
           }
 
           final bytesWritten = writer.getPosition() - start;
@@ -432,12 +442,12 @@ void writeDocument(ExportDocument document, File file) {
 
           for (var i = 0; i < document.alphaChannelCount; ++i) {
             // PSD expects UTF-16 strings, followed by a null terminator
-            final length = document.alphaChannels[i].asciiName.length;
+            final length = document.alphaChannels[i]?.asciiName?.length ?? 0;
             _writeToFileBE<Uint32T>(writer, (length + 1));
 
-            final asciiStr = document.alphaChannels[i].asciiName;
+            final asciiStr = document.alphaChannels[i]?.asciiName;
             for (var j = 0; j < length; ++j) {
-              final unicodeGlyph = asciiStr.codeUnitAt(j);
+              final unicodeGlyph = asciiStr?.codeUnitAt(j) ?? 0;
               _writeToFileBE<Uint16T>(writer, unicodeGlyph);
             }
 
@@ -502,11 +512,14 @@ void writeDocument(ExportDocument document, File file) {
 
   // per-layer info
   for (var i = 0; i < document.layerCount; ++i) {
-    var layer = document.layers[i];
-    _writeToFileBE<Int32T>(writer, layer.top);
-    _writeToFileBE<Int32T>(writer, layer.left);
-    _writeToFileBE<Int32T>(writer, layer.bottom);
-    _writeToFileBE<Int32T>(writer, layer.right);
+    var layer = document.layers?[i];
+    if (layer == null) {
+      continue;
+    }
+    _writeToFileBE<Int32T>(writer, layer.top ?? 0);
+    _writeToFileBE<Int32T>(writer, layer.left ?? 0);
+    _writeToFileBE<Int32T>(writer, layer.bottom ?? 0);
+    _writeToFileBE<Int32T>(writer, layer.right ?? 0);
 
     final channelCount = _getChannelCount(layer);
     _writeToFileBE<Uint16T>(writer, channelCount);
@@ -548,7 +561,7 @@ void writeDocument(ExportDocument document, File file) {
     _writeToFileBE<Uint32T>(writer, layerBlendingRangesDataLength);
 
     // the layer name is stored as pascal string, padded to a multiple of 4
-    final nameLength = ((layer.name.length));
+    final nameLength = ((layer.name?.length ?? 0));
     final paddedNameLength = roundUpToMultiple(nameLength + 1, 4);
     _writeToFileBE<Uint8T>(writer, nameLength);
     writer.write(layer.name, paddedNameLength - 1);
@@ -556,7 +569,10 @@ void writeDocument(ExportDocument document, File file) {
 
   // per-layer data
   for (var i = 0; i < document.layerCount; ++i) {
-    var layer = document.layers[i];
+    var layer = document.layers?[i];
+    if (layer == null) {
+      continue;
+    }
 
     // per-channel data
     for (var j = 0; j < ExportLayer.MAX_CHANNEL_COUNT; ++j) {
@@ -584,7 +600,7 @@ void writeDocument(ExportDocument document, File file) {
   // merged data section
   {
     final size =
-        document.width * document.height * document.bitsPerChannel ~/ 8;
+        document.width! * document.height! * document.bitsPerChannel! ~/ 8;
     var emptyMemory = Uint8List(size);
 
     // write merged image
@@ -616,7 +632,10 @@ String _createString(String str) {
 
 void _updateMetaData(
     ExportDocument document, int index, String name, String value) {
-  var attribute = document.attributes[index];
+  var attribute = document.attributes?[index];
+  if (attribute == null) {
+    return;
+  }
   attribute.name = _createString(name);
   attribute.value = _createString(value);
 }
@@ -691,18 +710,18 @@ void _updateLayerImpl<T extends NumDataType>(
     // note that this has a template specialization for 32-bit float data that forwards to ZipWithPrediction.
     if (T == Float32T) {
       _createDataZipPredictionF32(
-          layer, channelIndex, planarData, width, height);
+          layer, channelIndex, planarData as Float32List, width, height);
     } else {
       _createDataZip<T>(layer, channelIndex, planarData, width, height);
     }
   } else if (compression == CompressionType.ZIP_WITH_PREDICTION) {
     if (T == Float32T) {
       _createDataZipPredictionF32(
-          layer, channelIndex, planarData, width, height);
+          layer, channelIndex, planarData as Float32List, width, height);
     } else {
       // delta-encode, then compress with ZIP
       _createDataZipPrediction<T>(
-          layer, channelIndex, planarData, width, height);
+          layer, channelIndex, planarData as Float32List, width, height);
     }
   }
 }
@@ -733,7 +752,7 @@ void _createDataZipPrediction<T extends NumDataType>(ExportLayer layer,
     allocation[i] = nativeToBigEndian<T>(allocation[i]);
   }
 
-  Uint8List zipData = ZLibEncoder().encode(allocation);
+  Uint8List zipData = ZLibEncoder().encodeBytes(allocation as Uint8List);
 
   layer.channelData[channelIndex] = zipData;
   layer.channelSize[channelIndex] = zipData.length;
@@ -777,7 +796,7 @@ void _createDataZipPredictionF32(ExportLayer layer, int channelIndex,
     }
   }
 
-  Uint8List zipData = ZLibEncoder().encode(deltaData);
+  Uint8List zipData = ZLibEncoder().encodeBytes(deltaData);
 
   layer.channelData[channelIndex] = zipData;
   layer.channelSize[channelIndex] = zipData.length;
@@ -793,8 +812,8 @@ void _createDataZip<T extends NumDataType>(ExportLayer layer, int channelIndex,
     bigEndianData[i] = nativeToBigEndian<T>((planarData as List)[i]);
   }
 
-  Uint8List zipData =
-      ZLibEncoder().encode((bigEndianData as TypedData).buffer.asUint8List());
+  Uint8List zipData = ZLibEncoder()
+      .encodeBytes((bigEndianData as TypedData).buffer.asUint8List());
 
   layer.channelData[channelIndex] = zipData;
   layer.channelSize[channelIndex] = zipData.length;
@@ -863,7 +882,7 @@ void _updateMergedImageImpl<T extends NumDataType>(ExportDocument document,
   // free old data
 
   // copy raw data
-  final size = document.width * document.height;
+  final size = (document.width ?? 0) * (document.height ?? 0);
   var memoryR = getTypedList<T>(Uint8List(size * sizeof<T>())) as List;
   var memoryG = getTypedList<T>(Uint8List(size * sizeof<T>())) as List;
   var memoryB = getTypedList<T>(Uint8List(size * sizeof<T>())) as List;
@@ -895,20 +914,20 @@ void _updateChannelImpl<T extends NumDataType>(
   // free old data
 
   // copy raw data
-  var size = document.width * document.height;
+  var size = (document.width ?? 0) * (document.height ?? 0);
   var channelData = getTypedList<T>(Uint8List(size * sizeof<T>())) as List;
   for (var i = 0; i < size; ++i) {
     channelData[i] = nativeToBigEndian<T>((data as List)[i]);
   }
-  document.alphaChannelData[channelIndex] = channelData;
+  document.alphaChannelData[channelIndex] = channelData as Uint8List?;
 }
 
 int _getMetaDataResourceSize(ExportDocument document) {
   var metaDataSize = _XMP_HEADER.length;
   for (var i = 0; i < document.attributeCount; ++i) {
     metaDataSize += ('<xmp:>').length;
-    metaDataSize += (document.attributes[i].name.length) * 2;
-    metaDataSize += (document.attributes[i].value).length;
+    metaDataSize += (document.attributes?[i]?.name?.length ?? 0) * 2;
+    metaDataSize += (document.attributes?[i]?.value?.length ?? 0);
     metaDataSize += ('</xmp:>\n').length;
   }
   metaDataSize += _XMP_FOOTER.length;
@@ -980,11 +999,11 @@ int _getExifDataResourceSize(ExportDocument document) {
 }
 
 int _getThumbnailResourceSize(ExportDocument document) {
-  return document.thumbnail.binaryJpegSize + 28;
+  return (document.thumbnail?.binaryJpegSize ?? 0) + 28;
 }
 
 int _getExtraDataLength(ExportLayer layer) {
-  final nameLength = ((layer.name.length));
+  final nameLength = ((layer.name?.length ?? 0));
   final paddedNameLength = roundUpToMultiple(nameLength + 1, 4);
 
   // includes the lengths of the layer mask data and layer blending ranges data
@@ -999,7 +1018,7 @@ int _getDisplayInfoResourceSize(ExportDocument document) {
 int _getChannelNamesResourceSize(ExportDocument document) {
   var size = 0;
   for (var i = 0; i < document.alphaChannelCount; ++i) {
-    size += document.alphaChannels[i].asciiName.length + 1;
+    size += (document.alphaChannels?[i]?.asciiName?.length ?? 0) + 1;
   }
 
   return (size);
@@ -1009,7 +1028,7 @@ int _getUnicodeChannelNamesResourceSize(ExportDocument document) {
   var size = 0;
   for (var i = 0; i < document.alphaChannelCount; ++i) {
     // unicode strings are null terminated
-    size += (document.alphaChannels[i].asciiName.length + 1) * 2 + 4;
+    size += ((document.alphaChannels[i]?.asciiName?.length ?? 0) + 1) * 2 + 4;
   }
 
   return size;
@@ -1059,7 +1078,10 @@ int _getLayerInfoSectionLength(ExportDocument document) {
 
   var size = 2 + 4;
   for (var i = 0; i < document.layerCount; ++i) {
-    var layer = document.layers[i];
+    var layer = document.layers?[i];
+    if (layer == null) {
+      continue;
+    }
     size += 16 +
         2 +
         _getChannelCount(layer) * 6 +

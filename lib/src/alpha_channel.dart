@@ -13,20 +13,20 @@ class AlphaChannelMode {
 ///
 /// Note that the image data for alpha channels is stored in the image data section.
 class AlphaChannel {
-  AlphaChannel() : color = List<int>(4);
+  AlphaChannel() : color = List<int>.filled(4, 0);
 
   /// The channel's ASCII name.
-  String asciiName;
+  String? asciiName;
 
   /// The color space the colors are stored in.
-  int colorSpace;
+  int? colorSpace;
 
   /// 16-bit color data with 0 being black and 65535 being white (assuming RGBA).
   final List<int> color;
 
   /// The channel's opacity in the range [0, 100].
-  int opacity;
+  int? opacity;
 
   /// The channel's mode, one of AlphaChannel::Mode.
-  int mode;
+  int? mode;
 }
