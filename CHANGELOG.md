@@ -1,3 +1,11 @@
+## 0.2.0
+
+- Converted static classes to proper Dart enums for better type safety and idiomatic Dart code
+- Added `fromValue` methods to all enums for proper value conversion
+- Improved documentation and code organization
+- Updated SDK constraints to support modern Dart runtimes
+- Enhanced cross-platform compatibility
+
 ## 0.1.6
 
 - Added nullchecks in interleave functions.

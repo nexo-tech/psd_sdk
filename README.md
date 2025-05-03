@@ -1,23 +1,110 @@
 # psd_sdk
 
-[![pub package](https://img.shields.io/badge/pub-0.1.6-blueviolet.svg)](https://pub.dev/packages/psd_sdk)
+[![pub package](https://img.shields.io/badge/pub-0.2.0-blueviolet.svg)](https://pub.dev/packages/psd_sdk)
+[![style: very good analysis](https://img.shields.io/badge/style-very_good_analysis-B22C89.svg)](https://pub.dev/packages/very_good_analysis)
+[![License: BSD-3-Clause](https://img.shields.io/badge/License-BSD--3--Clause-blue.svg)](https://opensource.org/licenses/BSD-3-Clause)
 
-A Dart library that directly reads Photoshop PSD files. Ported from [psd_sdk](https://github.com/MolecularMatters/psd_sdk) by [Molecular Matters](https://molecular-matters.com/)
+A high-performance Dart library for reading and manipulating Photoshop PSD files. This library is a Dart port of the original [psd_sdk](https://github.com/MolecularMatters/psd_sdk) by [Molecular Matters](https://molecular-matters.com/).
 
-The library supports:
-* Groups
-* Nested layers
-* Smart Objects
-* User and vector masks
-* Transparency masks and additional alpha channels
-* 8-bit, 16-bit, and 32-bit data in grayscale and RGB color mode
-* All compression types known to Photoshop
+## Features
 
-Additionally, limited export functionality is also supported.
+### Reading Capabilities
+- ✅ Full support for PSD file structure
+- ✅ Layer groups and nested layers
+- ✅ Smart Objects
+- ✅ User and vector masks
+- ✅ Transparency masks and additional alpha channels
+- ✅ Support for 8-bit, 16-bit, and 32-bit data
+- ✅ Grayscale and RGB color modes
+- ✅ All Photoshop compression types (RAW, RLE, ZIP, ZIP with prediction)
 
-Created from templates made available by Stagehand under a BSD-style
-[license](https://github.com/dart-lang/stagehand/blob/master/LICENSE).
+### Export Capabilities
+- ✅ Basic export functionality
+- ✅ Layer data extraction
+- ✅ Channel data access
+- ✅ Mask data retrieval
+
+## Installation
+
+Add the package to your `pubspec.yaml`:
+
+```yaml
+dependencies:
+  psd_sdk: ^0.2.0
+```
+
+Then run:
+```bash
+dart pub get
+```
 
 ## Usage
 
-Refer to `psd_sdk_example.dart` in `example` directory.
+### Basic Example
+
+```dart
+import 'package:psd_sdk/psd_sdk.dart';
+
+void main() async {
+  // Load a PSD file
+  final psd = await PsdDocument.load('path/to/your/file.psd');
+  
+  // Access document properties
+  print('Width: ${psd.width}');
+  print('Height: ${psd.height}');
+  print('Color Mode: ${psd.colorMode}');
+  
+  // Iterate through layers
+  for (final layer in psd.layers) {
+    print('Layer: ${layer.name}');
+    print('Visible: ${layer.visible}');
+    print('Opacity: ${layer.opacity}');
+  }
+}
+```
+
+### Advanced Usage
+
+```dart
+// Access specific layer data
+final layer = psd.layers[0];
+final channelData = layer.channels[ChannelType.r];
+final maskData = layer.mask;
+
+// Export layer data
+final imageData = await layer.export();
+```
+
+## API Reference
+
+### Core Classes
+
+- `PsdDocument`: Main class for PSD file operations
+- `PsdLayer`: Represents a PSD layer
+- `PsdChannel`: Handles channel data
+- `PsdMask`: Manages layer masks
+
+### Enums
+
+- `ColorMode`: Document color modes (Bitmap, Grayscale, RGB, etc.)
+- `CompressionType`: Data compression types
+- `ChannelType`: Channel data types
+- `ExportColorMode`: Export color modes
+- `ExportChannel`: Export channel types
+
+## Contributing
+
+Contributions are welcome! Please feel free to submit a Pull Request.
+
+## License
+
+This project is licensed under the BSD-3-Clause License - see the [LICENSE](LICENSE) file for details.
+
+## Acknowledgments
+
+- Original C++ implementation by [Molecular Matters](https://molecular-matters.com/)
+- Dart port and maintenance by [nexo tech](https://github.com/nexo-tech)
+
+## Support
+
+For support, please open an issue in the [GitHub repository](https://github.com/nexo-tech/psd_sdk).
