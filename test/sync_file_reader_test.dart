@@ -35,24 +35,6 @@ class MockFile implements File {
   }
 }
 
-// FakeFile mimics the File interface expected by SyncFileReader
-class FakeFile extends File {
-  final ByteData? byteData;
-  final ByteBuffer? buffer;
-
-  FakeFile(List<int> bytes)
-      : buffer = Uint8List.fromList(bytes).buffer,
-        byteData = ByteData.view(Uint8List.fromList(bytes).buffer);
-
-  FakeFile.nullBoth()
-      : buffer = null,
-        byteData = null;
-
-  Future<RandomAccessFile> open() async {
-    throw UnimplementedError();
-  }
-}
-
 void main() {
   group('SyncFileReader normal behavior', () {
     late SyncFileReader reader;

@@ -44,7 +44,7 @@ ImageDataSection? parseImageDataSection(Document document, File file) {
     imageData = _readImageDataSectionRLE(reader, width ?? 0, height ?? 0,
         channelCount ?? 0, (bitsPerChannel ?? 0) ~/ 8);
   } else {
-    psdError(['ImageData', 'Unhandled compression type ${compressionType}.']);
+    psdError(['ImageData', 'Unhandled compression type $compressionType.']);
   }
 
   if (imageData == null) {

@@ -52,20 +52,20 @@ ImageResourcesSection parseImageResourcesSection(Document document, File file) {
     resourceSize = roundUpToMultiple(resourceSize, 2);
 
     switch (id) {
-      case ImageResource.IPTC_NAA:
-      case ImageResource.CAPTION_DIGEST:
-      case ImageResource.PRINT_INFORMATION:
-      case ImageResource.PRINT_STYLE:
-      case ImageResource.PRINT_SCALE:
-      case ImageResource.PRINT_FLAGS:
-      case ImageResource.PRINT_FLAGS_INFO:
-      case ImageResource.PRINT_INFO:
-      case ImageResource.RESOLUTION_INFO:
+      case ImageResource.iptcNaa:
+      case ImageResource.captionDigest:
+      case ImageResource.printInformation:
+      case ImageResource.printStyle:
+      case ImageResource.printScale:
+      case ImageResource.printFlags:
+      case ImageResource.printFlagsInfo:
+      case ImageResource.printInfo:
+      case ImageResource.resolutionInfo:
         // we are currently not interested in this resource, skip it
         reader.skip(resourceSize);
         break;
 
-      case ImageResource.DISPLAY_INFO:
+      case ImageResource.displayInfo:
         {
           // the display info resource stores color information and opacity for extra channels contained
           // in the document. these extra channels could be alpha/transparency, as well as spot color
@@ -96,38 +96,38 @@ ImageResourcesSection parseImageResourcesSection(Document document, File file) {
         }
         break;
 
-      case ImageResource.GLOBAL_ANGLE:
-      case ImageResource.GLOBAL_ALTITUDE:
-      case ImageResource.COLOR_HALFTONING_INFO:
-      case ImageResource.COLOR_TRANSFER_FUNCTIONS:
-      case ImageResource.MULTICHANNEL_HALFTONING_INFO:
-      case ImageResource.MULTICHANNEL_TRANSFER_FUNCTIONS:
-      case ImageResource.LAYER_STATE_INFORMATION:
-      case ImageResource.LAYER_GROUP_INFORMATION:
-      case ImageResource.LAYER_GROUP_ENABLED_ID:
-      case ImageResource.LAYER_SELECTION_ID:
-      case ImageResource.GRID_GUIDES_INFO:
-      case ImageResource.URL_LIST:
-      case ImageResource.SLICES:
-      case ImageResource.PIXEL_ASPECT_RATIO:
-      case ImageResource.ICC_UNTAGGED_PROFILE:
-      case ImageResource.ID_SEED_NUMBER:
-      case ImageResource.BACKGROUND_COLOR:
-      case ImageResource.ALPHA_CHANNEL_UNICODE_NAMES:
-      case ImageResource.ALPHA_IDENTIFIERS:
-      case ImageResource.COPYRIGHT_FLAG:
-      case ImageResource.PATH_SELECTION_STATE:
-      case ImageResource.ONION_SKINS:
-      case ImageResource.TIMELINE_INFO:
-      case ImageResource.SHEET_DISCLOSURE:
-      case ImageResource.WORKING_PATH:
-      case ImageResource.MAC_PRINT_MANAGER_INFO:
-      case ImageResource.WINDOWS_DEVMODE:
+      case ImageResource.globalAngle:
+      case ImageResource.globalAltitude:
+      case ImageResource.colorHalftoningInfo:
+      case ImageResource.colorTransferFunctions:
+      case ImageResource.multichannelHalftoningInfo:
+      case ImageResource.multichannelTransferFunctions:
+      case ImageResource.layerStateInformation:
+      case ImageResource.layerGroupInformation:
+      case ImageResource.layerGroupEnabledId:
+      case ImageResource.layerSelectionId:
+      case ImageResource.gridGuidesInfo:
+      case ImageResource.urlList:
+      case ImageResource.slices:
+      case ImageResource.pixelAspectRatio:
+      case ImageResource.iccUntaggedProfile:
+      case ImageResource.idSeedNumber:
+      case ImageResource.backgroundColor:
+      case ImageResource.alphaChannelUnicodeNames:
+      case ImageResource.alphaIdentifiers:
+      case ImageResource.copyrightFlag:
+      case ImageResource.pathSelectionState:
+      case ImageResource.onionSkins:
+      case ImageResource.timelineInfo:
+      case ImageResource.sheetDisclosure:
+      case ImageResource.workingPath:
+      case ImageResource.macPrintManagerInfo:
+      case ImageResource.windowsDevmode:
         // we are currently not interested in this resource, skip it
         reader.skip(resourceSize);
         break;
 
-      case ImageResource.VERSION_INFO:
+      case ImageResource.versionInfo:
         {
           // ignore: unused_local_variable
           final version = reader.readUint32();
@@ -138,7 +138,7 @@ ImageResourcesSection parseImageResourcesSection(Document document, File file) {
         }
         break;
 
-      case ImageResource.THUMBNAIL_RESOURCE:
+      case ImageResource.thumbnailResource:
         {
           var thumbnail = Thumbnail();
           imageResources.thumbnail = thumbnail;
@@ -172,7 +172,7 @@ ImageResourcesSection parseImageResourcesSection(Document document, File file) {
         }
         break;
 
-      case ImageResource.XMP_METADATA:
+      case ImageResource.xmpMetadata:
         {
           // load the XMP metadata as raw data
           assert(imageResources.xmpMetadata == null,
@@ -184,7 +184,7 @@ ImageResourcesSection parseImageResourcesSection(Document document, File file) {
         }
         break;
 
-      case ImageResource.ICC_PROFILE:
+      case ImageResource.iccProfile:
         {
           // load the ICC profile as raw data
           assert(imageResources.iccProfile == null,
@@ -194,7 +194,7 @@ ImageResourcesSection parseImageResourcesSection(Document document, File file) {
         }
         break;
 
-      case ImageResource.EXIF_DATA:
+      case ImageResource.exifData:
         {
           // load the EXIF data as raw data
           assert(imageResources.exifData == null,
@@ -204,7 +204,7 @@ ImageResourcesSection parseImageResourcesSection(Document document, File file) {
         }
         break;
 
-      case ImageResource.ALPHA_CHANNEL_ASCII_NAMES:
+      case ImageResource.alphaChannelAsciiNames:
         {
           // check whether storage for alpha channels has been allocated yet
           // (imageResource::DISPLAY_INFO stores the channel color data)

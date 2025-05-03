@@ -2,150 +2,150 @@ import 'package:psd_sdk/src/key.dart';
 
 enum BlendMode {
   /// Key = "pass"
-  PASS_THROUGH,
+  passThrough,
 
   /// Key = "norm"
-  NORMAL,
+  normal,
 
   /// Key = "diss"
-  DISSOLVE,
+  dissolve,
 
   /// Key = "dark"
-  DARKEN,
+  darken,
 
   /// Key = "mul "
-  MULTIPLY,
+  multiply,
 
   /// Key = "idiv"
-  COLOR_BURN,
+  colorBurn,
 
   /// Key = "lbrn"
-  LINEAR_BURN,
+  linearBurn,
 
   /// Key = "dkCl"
-  DARKER_COLOR,
+  darkerColor,
 
   /// Key = "lite"
-  LIGHTEN,
+  lighten,
 
   /// Key = "scrn"
-  SCREEN,
+  screen,
 
   /// Key = "div "
-  COLOR_DODGE,
+  colorDodge,
 
   /// Key = "lddg"
-  LINEAR_DODGE,
+  linearDodge,
 
   /// Key = "lgCl"
-  LIGHTER_COLOR,
+  lighterColor,
 
   /// Key = "over"
-  OVERLAY,
+  overlay,
 
   /// Key = "sLit"
-  SOFT_LIGHT,
+  softLight,
 
   /// Key = "hLit"
-  HARD_LIGHT,
+  hardLight,
 
   /// Key = "vLit"
-  VIVID_LIGHT,
+  vividLight,
 
   /// Key = "lLit"
-  LINEAR_LIGHT,
+  linearLight,
 
   /// Key = "pLit"
-  PIN_LIGHT,
+  pinLight,
 
   /// Key = "hMix"
-  HARD_MIX,
+  hardMix,
 
   /// Key = "diff"
-  DIFFERENCE,
+  difference,
 
   /// Key = "smud"
-  EXCLUSION,
+  exclusion,
 
   /// Key = "fsub"
-  SUBTRACT,
+  subtract,
 
   /// Key = "fdiv"
-  DIVIDE,
+  divide,
 
   /// Key = "hue "
-  HUE,
+  hue,
 
   /// Key = "sat "
-  SATURATION,
+  saturation,
 
   /// Key = "colr"
-  COLOR,
+  color,
 
   /// Key = "lum "
-  LUMINOSITY,
+  luminosity,
 
-  UNKNOWN
+  unknown
 }
 
 /// Converts a given key to the corresponding BlendMode.
 BlendMode blendModeKeyToEnum(int key) {
   if (key == keyValue('pass')) {
-    return BlendMode.PASS_THROUGH;
+    return BlendMode.passThrough;
   } else if (key == keyValue('norm')) {
-    return BlendMode.NORMAL;
+    return BlendMode.normal;
   } else if (key == keyValue('diss')) {
-    return BlendMode.DISSOLVE;
+    return BlendMode.dissolve;
   } else if (key == keyValue('dark')) {
-    return BlendMode.DARKEN;
+    return BlendMode.darken;
   } else if (key == keyValue('mul ')) {
-    return BlendMode.MULTIPLY;
+    return BlendMode.multiply;
   } else if (key == keyValue('idiv')) {
-    return BlendMode.COLOR_BURN;
+    return BlendMode.colorBurn;
   } else if (key == keyValue('lbrn')) {
-    return BlendMode.LINEAR_BURN;
+    return BlendMode.linearBurn;
   } else if (key == keyValue('dkCl')) {
-    return BlendMode.DARKER_COLOR;
+    return BlendMode.darkerColor;
   } else if (key == keyValue('lite')) {
-    return BlendMode.LIGHTEN;
+    return BlendMode.lighten;
   } else if (key == keyValue('scrn')) {
-    return BlendMode.SCREEN;
+    return BlendMode.screen;
   } else if (key == keyValue('div ')) {
-    return BlendMode.COLOR_DODGE;
+    return BlendMode.colorDodge;
   } else if (key == keyValue('lddg')) {
-    return BlendMode.LINEAR_DODGE;
+    return BlendMode.linearDodge;
   } else if (key == keyValue('lgCl')) {
-    return BlendMode.LIGHTER_COLOR;
+    return BlendMode.lighterColor;
   } else if (key == keyValue('over')) {
-    return BlendMode.OVERLAY;
+    return BlendMode.overlay;
   } else if (key == keyValue('sLit')) {
-    return BlendMode.SOFT_LIGHT;
+    return BlendMode.softLight;
   } else if (key == keyValue('hLit')) {
-    return BlendMode.HARD_LIGHT;
+    return BlendMode.hardLight;
   } else if (key == keyValue('vLit')) {
-    return BlendMode.VIVID_LIGHT;
+    return BlendMode.vividLight;
   } else if (key == keyValue('lLit')) {
-    return BlendMode.LINEAR_LIGHT;
+    return BlendMode.linearLight;
   } else if (key == keyValue('pLit')) {
-    return BlendMode.PIN_LIGHT;
+    return BlendMode.pinLight;
   } else if (key == keyValue('hMix')) {
-    return BlendMode.HARD_MIX;
+    return BlendMode.hardMix;
   } else if (key == keyValue('diff')) {
-    return BlendMode.DIFFERENCE;
+    return BlendMode.difference;
   } else if (key == keyValue('smud')) {
-    return BlendMode.EXCLUSION;
+    return BlendMode.exclusion;
   } else if (key == keyValue('fsub')) {
-    return BlendMode.SUBTRACT;
+    return BlendMode.subtract;
   } else if (key == keyValue('fdiv')) {
-    return BlendMode.DIVIDE;
+    return BlendMode.divide;
   } else if (key == keyValue('hue ')) {
-    return BlendMode.HUE;
+    return BlendMode.hue;
   } else if (key == keyValue('sat ')) {
-    return BlendMode.SATURATION;
+    return BlendMode.saturation;
   } else if (key == keyValue('colr')) {
-    return BlendMode.COLOR;
+    return BlendMode.color;
   } else if (key == keyValue('lum ')) {
-    return BlendMode.LUMINOSITY;
+    return BlendMode.luminosity;
   }
-  return BlendMode.UNKNOWN;
+  return BlendMode.unknown;
 }

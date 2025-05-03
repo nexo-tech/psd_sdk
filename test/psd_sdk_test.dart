@@ -140,16 +140,16 @@ void main() {
           indexG != channelNotFound &&
           indexB != channelNotFound) {
         canvasData[0] =
-            expandChannelToCanvas(document, layer!, layer!.channels![indexR]!);
+            expandChannelToCanvas(document, layer!, layer!.channels![indexR!]!);
         canvasData[1] =
-            expandChannelToCanvas(document, layer!, layer!.channels![indexG]!);
+            expandChannelToCanvas(document, layer!, layer!.channels![indexG!]!);
         canvasData[2] =
-            expandChannelToCanvas(document, layer!, layer!.channels![indexB]!);
+            expandChannelToCanvas(document, layer!, layer!.channels![indexB!]!);
         channelCount = 3;
 
         if (indexA != channelNotFound) {
           canvasData[3] = expandChannelToCanvas(
-              document, layer!, layer!.channels![indexA]!);
+              document, layer!, layer!.channels![indexA!]!);
           channelCount = 4;
         }
       }

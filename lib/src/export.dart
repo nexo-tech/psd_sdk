@@ -290,11 +290,11 @@ void writeDocument(ExportDocument document, File file) {
       _writeToFileBE<Uint32T>(writer, sectionLength);
 
       if (hasMetaData) {
-        _writeImageResource(writer, ImageResource.XMP_METADATA, metaDataSize);
+        _writeImageResource(writer, ImageResource.xmpMetadata, metaDataSize);
 
         final start = writer.getPosition();
         {
-          writer.write(_XMP_HEADER, _XMP_HEADER.length);
+          writer.write(xmpHeader, xmpHeader.length);
           for (var i = 0; i < document.attributeCount; ++i) {
             writer.write('<xmp:', 5);
             writer.write(document.attributes?[i].name,
@@ -307,7 +307,7 @@ void writeDocument(ExportDocument document, File file) {
                 ((document.attributes?[i].name)?.length ?? 0));
             writer.write('>\n', 2);
           }
-          writer.write(_XMP_FOOTER, _XMP_FOOTER.length);
+          writer.write(xmpFooter, xmpFooter.length);
         }
         final bytesWritten = writer.getPosition() - start;
         if (bytesWritten & 1 != 0) {
@@ -317,7 +317,7 @@ void writeDocument(ExportDocument document, File file) {
       }
 
       if (hasIccProfile) {
-        _writeImageResource(writer, ImageResource.ICC_PROFILE, iccProfileSize);
+        _writeImageResource(writer, ImageResource.iccProfile, iccProfileSize);
 
         final start = writer.getPosition();
         {
@@ -331,7 +331,7 @@ void writeDocument(ExportDocument document, File file) {
       }
 
       if (hasExifData) {
-        _writeImageResource(writer, ImageResource.EXIF_DATA, exifDataSize);
+        _writeImageResource(writer, ImageResource.exifData, exifDataSize);
 
         final start = writer.getPosition();
         {
@@ -346,7 +346,7 @@ void writeDocument(ExportDocument document, File file) {
 
       if (hasThumbnail) {
         _writeImageResource(
-            writer, ImageResource.THUMBNAIL_RESOURCE, thumbnailSize);
+            writer, ImageResource.thumbnailResource, thumbnailSize);
 
         final start = writer.getPosition();
         {
@@ -382,7 +382,7 @@ void writeDocument(ExportDocument document, File file) {
         // write display info
         {
           _writeImageResource(
-              writer, ImageResource.DISPLAY_INFO, displayInfoSize);
+              writer, ImageResource.displayInfo, displayInfoSize);
 
           final start = writer.getPosition();
 
@@ -413,8 +413,8 @@ void writeDocument(ExportDocument document, File file) {
 
         // write channel names
         {
-          _writeImageResource(writer, ImageResource.ALPHA_CHANNEL_ASCII_NAMES,
-              channelNamesSize);
+          _writeImageResource(
+              writer, ImageResource.alphaChannelAsciiNames, channelNamesSize);
 
           final start = writer.getPosition();
 
@@ -434,7 +434,7 @@ void writeDocument(ExportDocument document, File file) {
 
         // write unicode channel names
         {
-          _writeImageResource(writer, ImageResource.ALPHA_CHANNEL_UNICODE_NAMES,
+          _writeImageResource(writer, ImageResource.alphaChannelUnicodeNames,
               unicodeChannelNamesSize);
 
           final start = writer.getPosition();
@@ -899,7 +899,7 @@ void _updateMergedImageImpl<T extends NumDataType>(ExportDocument document,
   document.mergedImageData[2] = (memoryB as TypedData).buffer.asUint8List();
 }
 
-const _XMP_HEADER = '''<x:xmpmeta xmlns:x = "adobe:ns:meta/">
+const xmpHeader = '''<x:xmpmeta xmlns:x = "adobe:ns:meta/">
 		<rdf:RDF xmlns:rdf = "http://www.w3.org/1999/02/22-rdf-syntax-ns#">
 		<rdf:Description rdf:about=""
 		xmlns:xmp = "http://ns.adobe.com/xap/1.0/"
@@ -908,7 +908,7 @@ const _XMP_HEADER = '''<x:xmpmeta xmlns:x = "adobe:ns:meta/">
 		xmlns:xmpMM = "http://ns.adobe.com/xap/1.0/mm/"
 		xmlns:stEvt = "http://ns.adobe.com/xap/1.0/sType/ResourceEvent#">''';
 
-const _XMP_FOOTER = '''</rdf:Description>\n
+const xmpFooter = '''</rdf:Description>\n
 		</rdf:RDF>\n
 		</x:xmpmeta>\n''';
 
@@ -926,14 +926,14 @@ void _updateChannelImpl<T extends NumDataType>(
 }
 
 int _getMetaDataResourceSize(ExportDocument document) {
-  var metaDataSize = _XMP_HEADER.length;
+  var metaDataSize = xmpHeader.length;
   for (var i = 0; i < document.attributeCount; ++i) {
     metaDataSize += ('<xmp:>').length;
     metaDataSize += (document.attributes?[i].name?.length ?? 0) * 2;
     metaDataSize += (document.attributes?[i].value?.length ?? 0);
     metaDataSize += ('</xmp:>\n').length;
   }
-  metaDataSize += _XMP_FOOTER.length;
+  metaDataSize += xmpFooter.length;
 
   return metaDataSize;
 }

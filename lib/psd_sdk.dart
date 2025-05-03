@@ -21,7 +21,5 @@ export 'src/export_color_mode.dart';
 export 'src/export.dart';
 export 'src/export_channel.dart';
 export 'src/compression_type.dart';
-export 'src/file.dart';
 export 'src/blend_mode.dart';
-export 'src/color_mode.dart';
 export 'src/error.dart';

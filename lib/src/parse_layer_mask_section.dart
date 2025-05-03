@@ -24,11 +24,12 @@ import 'sync_file_reader.dart';
 /// by a call to ExtractLayer for each layer.
 /// It is valid to parse different sections of a document (e.g. using parseImageResourcesSection, parseImageDataSection,
 /// or parseLayerMaskSection) in parallel from different threads.
-LayerMaskSection parseLayerMaskSection(Document document, File file) {
+LayerMaskSection? parseLayerMaskSection(Document document, File file) {
   // if there are no layers or masks, this section is just 4 bytes: the length field, which is set to zero.
   final section = document.layerMaskInfoSection;
   if (section.length == 0) {
-    throw Exception('Document does not contain a layer mask section.');
+    psdError(['PSD', 'Document does not contain a layer mask section.']);
+    return null;
   }
 
   final reader = SyncFileReader(file);

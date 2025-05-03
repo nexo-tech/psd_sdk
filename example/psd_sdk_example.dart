@@ -4,9 +4,7 @@ import 'package:psd_sdk/psd_sdk.dart';
 import 'tga_exporter.dart' as tga_exporter;
 import 'dart:io' as io;
 
-final int CHANNEL_NOT_FOUND = -1;
-
-int findChannel(Layer layer, int channelType) {
+int? findChannel(Layer layer, int channelType) {
   for (var i = 0; i < layer.channelCount; ++i) {
     var channel = layer.channels![i];
     if (channel!.data != null && channel.type == channelType) {
@@ -14,7 +12,7 @@ int findChannel(Layer layer, int channelType) {
     }
   }
 
-  return CHANNEL_NOT_FOUND;
+  return null;
 }
 
 String getSampleInputPath() {
@@ -108,12 +106,12 @@ int sampleReadPsd() {
   var hasTransparencyMask = false;
   final layerMaskSection = parseLayerMaskSection(document, file);
 
-  hasTransparencyMask = layerMaskSection.hasTransparencyMask ?? false;
+  hasTransparencyMask = layerMaskSection?.hasTransparencyMask ?? false;
 
   // extract all layers one by one. this should be done in parallel for
   // maximum efficiency.
-  for (var i = 0; i < layerMaskSection.layerCount; ++i) {
-    var layer = layerMaskSection.layers![i];
+  for (var i = 0; i < (layerMaskSection?.layerCount ?? 0); ++i) {
+    var layer = layerMaskSection?.layers![i];
     extractLayer(document, file, layer!);
 
     // check availability of R, G, B, and A channels.
@@ -132,19 +130,17 @@ int sampleReadPsd() {
     // work with the channel data directly if you need to.
     var canvasData = List<Uint8List?>.filled(4, null);
     var channelCount = 0;
-    if ((indexR != CHANNEL_NOT_FOUND) &&
-        (indexG != CHANNEL_NOT_FOUND) &&
-        (indexB != CHANNEL_NOT_FOUND)) {
+    if ((indexR != null) && (indexG != null) && (indexB != null)) {
       // RGB channels were found.
       canvasData[0] =
-          expandChannelToCanvas(document, layer, layer!.channels![indexR]!)!;
+          expandChannelToCanvas(document, layer, layer.channels![indexR]!)!;
       canvasData[1] =
           expandChannelToCanvas(document, layer, layer.channels![indexG]!)!;
       canvasData[2] =
           expandChannelToCanvas(document, layer, layer.channels![indexB]!)!;
       channelCount = 3;
 
-      if (indexA != CHANNEL_NOT_FOUND) {
+      if (indexA != null) {
         // A channel was also found.
         canvasData[3] =
             expandChannelToCanvas(document, layer, layer.channels![indexA]!)!;
@@ -186,7 +182,7 @@ int sampleReadPsd() {
     // unfortunately it is optional. fall back to the ASCII name in case no
     // Unicode name was found.
     String layerName;
-    if (layer!.utf16Name != null) {
+    if (layer.utf16Name != null) {
       layerName =
           String.fromCharCodes(layer.utf16Name!.where((x) => x != 0x00));
     } else {
@@ -200,13 +196,13 @@ int sampleReadPsd() {
     // we simply write the image to a .TGA file.
     if (channelCount == 3) {
       if (document.bitsPerChannel == 8) {
-        var filename = '${getSampleOutputPath()}' 'layer${layerName}.tga';
+        var filename = '${getSampleOutputPath()}' 'layer$layerName.tga';
         tga_exporter.saveRGB(
             filename, document.width ?? 0, document.height ?? 0, image8!);
       }
     } else if (channelCount == 4) {
       if (document.bitsPerChannel == 8) {
-        var filename = '${getSampleOutputPath()}' 'layer${layerName}.tga';
+        var filename = '${getSampleOutputPath()}' 'layer$layerName.tga';
         tga_exporter.saveRGBA(
             filename, document.width ?? 0, document.height ?? 0, image8!);
       }
@@ -215,7 +211,7 @@ int sampleReadPsd() {
     // in addition to the layer data, we also want to extract the user and/or
     // vector mask. luckily, this has been handled already by the
     // ExtractLayer() function. we just need to check whether a mask exists.
-    if (layer!.layerMask != null) {
+    if (layer.layerMask != null) {
       // a layer mask exists, and data is available. work out the mask's
       // dimensions.
       final width = (layer.layerMask!.right! - layer.layerMask!.left!);
@@ -227,7 +223,7 @@ int sampleReadPsd() {
       var maskData = layer.layerMask!.data;
       {
         var filename =
-            '${getSampleOutputPath()}' 'layer${layerName}' '_usermask.tga';
+            '${getSampleOutputPath()}' 'layer$layerName' '_usermask.tga';
         tga_exporter.saveMonochrome(filename, width, height, maskData!);
       }
 
@@ -251,14 +247,14 @@ int sampleReadPsd() {
       var maskData = layer.vectorMask!.data;
       {
         var filename =
-            '${getSampleOutputPath()}' 'layer${layerName}' '_vectormask.tga';
+            '${getSampleOutputPath()}' 'layer$layerName' '_vectormask.tga';
         tga_exporter.saveMonochrome(filename, width, height, maskData!);
       }
 
       var maskCanvasData = expandMaskToCanvas(document, layer.vectorMask!);
       {
         var filename =
-            '${getSampleOutputPath()}' 'canvas${layerName}' '_vectormask.tga';
+            '${getSampleOutputPath()}' 'canvas$layerName' '_vectormask.tga';
         tga_exporter.saveMonochrome(filename, document.width ?? 0,
             document.height ?? 0, maskCanvasData!);
       }
@@ -302,9 +298,9 @@ int sampleReadPsd() {
 
       final image = isRgb
           ? interleaveRGB(
-              imageData!.images![0]!.data!,
-              imageData!.images![1]!.data!,
-              imageData!.images![2]!.data!,
+              imageData.images![0]!.data!,
+              imageData.images![1]!.data!,
+              imageData.images![2]!.data!,
               0,
               document.bitsPerChannel ?? 0,
               document.width ?? 0,
@@ -364,56 +360,56 @@ int sampleReadPsd() {
   return 0;
 }
 
-final IMAGE_WIDTH = 256;
-final IMAGE_HEIGHT = 256;
+final targetImageWidth = 256;
+final targetImageHeight = 256;
 
-final gMultiplyData = Uint8List(IMAGE_WIDTH * IMAGE_HEIGHT);
-final gXorData = Uint8List(IMAGE_WIDTH * IMAGE_HEIGHT);
-final gOrData = Uint8List(IMAGE_WIDTH * IMAGE_HEIGHT);
-final gAndData = Uint8List(IMAGE_WIDTH * IMAGE_HEIGHT);
-final gCheckerBoardData = Uint8List(IMAGE_WIDTH * IMAGE_HEIGHT);
+final gMultiplyData = Uint8List(targetImageWidth * targetImageHeight);
+final gXorData = Uint8List(targetImageWidth * targetImageHeight);
+final gOrData = Uint8List(targetImageWidth * targetImageHeight);
+final gAndData = Uint8List(targetImageWidth * targetImageHeight);
+final gCheckerBoardData = Uint8List(targetImageWidth * targetImageHeight);
 
-final gMultiplyData16 = Uint16List(IMAGE_HEIGHT * IMAGE_WIDTH);
-final gXorData16 = Uint16List(IMAGE_HEIGHT * IMAGE_WIDTH);
-final gOrData16 = Uint16List(IMAGE_HEIGHT * IMAGE_WIDTH);
-final gAndData16 = Uint16List(IMAGE_HEIGHT * IMAGE_WIDTH);
-final gCheckerBoardData16 = Uint16List(IMAGE_HEIGHT * IMAGE_WIDTH);
+final gMultiplyData16 = Uint16List(targetImageHeight * targetImageWidth);
+final gXorData16 = Uint16List(targetImageHeight * targetImageWidth);
+final gOrData16 = Uint16List(targetImageHeight * targetImageWidth);
+final gAndData16 = Uint16List(targetImageHeight * targetImageWidth);
+final gCheckerBoardData16 = Uint16List(targetImageHeight * targetImageWidth);
 
-final gMultiplyData32 = Float32List(IMAGE_WIDTH * IMAGE_HEIGHT);
-final gXorData32 = Float32List(IMAGE_WIDTH * IMAGE_HEIGHT);
-final gOrData32 = Float32List(IMAGE_WIDTH * IMAGE_HEIGHT);
-final gAndData32 = Float32List(IMAGE_WIDTH * IMAGE_HEIGHT);
-final gCheckerBoardData32 = Float32List(IMAGE_WIDTH * IMAGE_HEIGHT);
+final gMultiplyData32 = Float32List(targetImageWidth * targetImageHeight);
+final gXorData32 = Float32List(targetImageWidth * targetImageHeight);
+final gOrData32 = Float32List(targetImageWidth * targetImageHeight);
+final gAndData32 = Float32List(targetImageWidth * targetImageHeight);
+final gCheckerBoardData32 = Float32List(targetImageWidth * targetImageHeight);
 
-void GenerateImageData() {
-  for (var y = 0; y < IMAGE_HEIGHT; ++y) {
-    for (var x = 0; x < IMAGE_WIDTH; ++x) {
-      gMultiplyData[y * IMAGE_WIDTH + x] = (x * y >> 8) & 0xFF;
-      gXorData[y * IMAGE_WIDTH + x] = (x ^ y) & 0xFF;
-      gOrData[y * IMAGE_WIDTH + x] = (x | y) & 0xFF;
-      gAndData[y * IMAGE_WIDTH + x] = (x & y) & 0xFF;
-      gCheckerBoardData[y * IMAGE_WIDTH + x] =
+void generateImageData() {
+  for (var y = 0; y < targetImageHeight; ++y) {
+    for (var x = 0; x < targetImageWidth; ++x) {
+      gMultiplyData[y * targetImageWidth + x] = (x * y >> 8) & 0xFF;
+      gXorData[y * targetImageWidth + x] = (x ^ y) & 0xFF;
+      gOrData[y * targetImageWidth + x] = (x | y) & 0xFF;
+      gAndData[y * targetImageWidth + x] = (x & y) & 0xFF;
+      gCheckerBoardData[y * targetImageWidth + x] =
           (x ~/ 8 + y ~/ 8) & 1 != 0 ? 255 : 128;
 
-      gMultiplyData16[y * IMAGE_WIDTH + x] = (x * y) & 0xFFFF;
-      gXorData16[y * IMAGE_WIDTH + x] = ((x ^ y) * 256) & 0xFFFF;
-      gOrData16[y * IMAGE_WIDTH + x] = ((x | y) * 256) & 0xFFFF;
-      gAndData16[y * IMAGE_WIDTH + x] = ((x & y) * 256) & 0xFFFF;
-      gCheckerBoardData16[y * IMAGE_WIDTH + x] =
+      gMultiplyData16[y * targetImageWidth + x] = (x * y) & 0xFFFF;
+      gXorData16[y * targetImageWidth + x] = ((x ^ y) * 256) & 0xFFFF;
+      gOrData16[y * targetImageWidth + x] = ((x | y) * 256) & 0xFFFF;
+      gAndData16[y * targetImageWidth + x] = ((x & y) * 256) & 0xFFFF;
+      gCheckerBoardData16[y * targetImageWidth + x] =
           (x ~/ 8 + y ~/ 8) & 1 != 0 ? 65535 : 32768;
 
-      gMultiplyData32[y * IMAGE_WIDTH + x] = (1.0 / 65025.0) * (x * y);
-      gXorData32[y * IMAGE_WIDTH + x] = (1.0 / 65025.0) * ((x ^ y) * 256);
-      gOrData32[y * IMAGE_WIDTH + x] = (1.0 / 65025.0) * ((x | y) * 256);
-      gAndData32[y * IMAGE_WIDTH + x] = (1.0 / 65025.0) * ((x & y) * 256);
-      gCheckerBoardData32[y * IMAGE_WIDTH + x] =
+      gMultiplyData32[y * targetImageWidth + x] = (1.0 / 65025.0) * (x * y);
+      gXorData32[y * targetImageWidth + x] = (1.0 / 65025.0) * ((x ^ y) * 256);
+      gOrData32[y * targetImageWidth + x] = (1.0 / 65025.0) * ((x | y) * 256);
+      gAndData32[y * targetImageWidth + x] = (1.0 / 65025.0) * ((x & y) * 256);
+      gCheckerBoardData32[y * targetImageWidth + x] =
           (x ~/ 8 + y ~/ 8) & 1 != 0 ? 1.0 : 0.5;
     }
   }
 }
 
 int sampleWritePsd() {
-  GenerateImageData();
+  generateImageData();
 
   {
     final dstPath = '${getSampleOutputPath()}SampleWrite_8.psd';
@@ -421,8 +417,8 @@ int sampleWritePsd() {
     var file = File();
 
     // write an RGB PSD file, 8-bit
-    var document =
-        createExportDocument(IMAGE_WIDTH, IMAGE_HEIGHT, 8, ExportColorMode.RGB);
+    var document = createExportDocument(
+        targetImageWidth, targetImageHeight, 8, ExportColorMode.RGB);
     {
       // metadata can be added as simple key-value pairs.
       // when loading the document, they will be contained in XMP metadata such
@@ -446,36 +442,36 @@ int sampleWritePsd() {
       // good compromise between speed and size. ZIP_WITH_PREDICTION first delta
       // encodes the data, and then zips it. slowest to write, but also smallest
       // in size for most images.
-      updateLayer(document, layer1, ExportChannel.RED, 0, 0, IMAGE_WIDTH,
-          IMAGE_HEIGHT, gMultiplyData, CompressionType.RAW);
-      updateLayer(document, layer1, ExportChannel.GREEN, 0, 0, IMAGE_WIDTH,
-          IMAGE_HEIGHT, gMultiplyData, CompressionType.RAW);
-      updateLayer(document, layer1, ExportChannel.BLUE, 0, 0, IMAGE_WIDTH,
-          IMAGE_HEIGHT, gMultiplyData, CompressionType.RAW);
+      updateLayer(document, layer1, ExportChannel.RED, 0, 0, targetImageWidth,
+          targetImageHeight, gMultiplyData, CompressionType.RAW);
+      updateLayer(document, layer1, ExportChannel.GREEN, 0, 0, targetImageWidth,
+          targetImageHeight, gMultiplyData, CompressionType.RAW);
+      updateLayer(document, layer1, ExportChannel.BLUE, 0, 0, targetImageWidth,
+          targetImageHeight, gMultiplyData, CompressionType.RAW);
 
-      updateLayer(document, layer2, ExportChannel.RED, 0, 0, IMAGE_WIDTH,
-          IMAGE_HEIGHT, gXorData, CompressionType.RAW);
-      updateLayer(document, layer2, ExportChannel.GREEN, 0, 0, IMAGE_WIDTH,
-          IMAGE_HEIGHT, gXorData, CompressionType.RAW);
-      updateLayer(document, layer2, ExportChannel.BLUE, 0, 0, IMAGE_WIDTH,
-          IMAGE_HEIGHT, gXorData, CompressionType.RAW);
+      updateLayer(document, layer2, ExportChannel.RED, 0, 0, targetImageWidth,
+          targetImageHeight, gXorData, CompressionType.RAW);
+      updateLayer(document, layer2, ExportChannel.GREEN, 0, 0, targetImageWidth,
+          targetImageHeight, gXorData, CompressionType.RAW);
+      updateLayer(document, layer2, ExportChannel.BLUE, 0, 0, targetImageWidth,
+          targetImageHeight, gXorData, CompressionType.RAW);
 
-      updateLayer(document, layer3, ExportChannel.RED, 0, 0, IMAGE_WIDTH,
-          IMAGE_HEIGHT, gMultiplyData, CompressionType.RAW);
-      updateLayer(document, layer3, ExportChannel.GREEN, 0, 0, IMAGE_WIDTH,
-          IMAGE_HEIGHT, gXorData, CompressionType.RAW);
-      updateLayer(document, layer3, ExportChannel.BLUE, 0, 0, IMAGE_WIDTH,
-          IMAGE_HEIGHT, gOrData, CompressionType.RAW);
+      updateLayer(document, layer3, ExportChannel.RED, 0, 0, targetImageWidth,
+          targetImageHeight, gMultiplyData, CompressionType.RAW);
+      updateLayer(document, layer3, ExportChannel.GREEN, 0, 0, targetImageWidth,
+          targetImageHeight, gXorData, CompressionType.RAW);
+      updateLayer(document, layer3, ExportChannel.BLUE, 0, 0, targetImageWidth,
+          targetImageHeight, gOrData, CompressionType.RAW);
 
       // note that transparency information is always supported, regardless of
       // the export color mode. it is saved as true transparency, and not as
       // separate alpha channel.
-      updateLayer(document, layer1, ExportChannel.ALPHA, 0, 0, IMAGE_WIDTH,
-          IMAGE_HEIGHT, gMultiplyData, CompressionType.RAW);
-      updateLayer(document, layer2, ExportChannel.ALPHA, 0, 0, IMAGE_WIDTH,
-          IMAGE_HEIGHT, gXorData, CompressionType.RAW);
-      updateLayer(document, layer3, ExportChannel.ALPHA, 0, 0, IMAGE_WIDTH,
-          IMAGE_HEIGHT, gOrData, CompressionType.RAW);
+      updateLayer(document, layer1, ExportChannel.ALPHA, 0, 0, targetImageWidth,
+          targetImageHeight, gMultiplyData, CompressionType.RAW);
+      updateLayer(document, layer2, ExportChannel.ALPHA, 0, 0, targetImageWidth,
+          targetImageHeight, gXorData, CompressionType.RAW);
+      updateLayer(document, layer3, ExportChannel.ALPHA, 0, 0, targetImageWidth,
+          targetImageHeight, gOrData, CompressionType.RAW);
 
       // merged image data is optional. if none is provided, black channels will
       // be exported instead.
@@ -519,31 +515,31 @@ int sampleWritePsd() {
     // write a Grayscale PSD file, 16-bit.
     // Grayscale works similar to RGB, only the types of export channels change.
     final document = createExportDocument(
-        IMAGE_WIDTH, IMAGE_HEIGHT, 16, ExportColorMode.GRAYSCALE);
+        targetImageWidth, targetImageHeight, 16, ExportColorMode.GRAYSCALE);
     {
       final layer1 = addLayer(document, 'MUL pattern');
-      updateLayer(document, layer1, ExportChannel.GRAY, 0, 0, IMAGE_WIDTH,
-          IMAGE_HEIGHT, gMultiplyData16, CompressionType.RAW);
+      updateLayer(document, layer1, ExportChannel.GRAY, 0, 0, targetImageWidth,
+          targetImageHeight, gMultiplyData16, CompressionType.RAW);
 
       final layer2 = addLayer(document, 'XOR pattern');
-      updateLayer(document, layer2, ExportChannel.GRAY, 0, 0, IMAGE_WIDTH,
-          IMAGE_HEIGHT, gXorData16, CompressionType.RLE);
+      updateLayer(document, layer2, ExportChannel.GRAY, 0, 0, targetImageWidth,
+          targetImageHeight, gXorData16, CompressionType.RLE);
 
       final layer3 = addLayer(document, 'AND pattern');
-      updateLayer(document, layer3, ExportChannel.GRAY, 0, 0, IMAGE_WIDTH,
-          IMAGE_HEIGHT, gAndData16, CompressionType.ZIP);
+      updateLayer(document, layer3, ExportChannel.GRAY, 0, 0, targetImageWidth,
+          targetImageHeight, gAndData16, CompressionType.ZIP);
 
       final layer4 = addLayer(document, 'OR pattern with transparency');
-      updateLayer(document, layer4, ExportChannel.GRAY, 0, 0, IMAGE_WIDTH,
-          IMAGE_HEIGHT, gOrData16, CompressionType.ZIP_WITH_PREDICTION);
+      updateLayer(document, layer4, ExportChannel.GRAY, 0, 0, targetImageWidth,
+          targetImageHeight, gOrData16, CompressionType.ZIP_WITH_PREDICTION);
       updateLayer(
           document,
           layer4,
           ExportChannel.ALPHA,
           0,
           0,
-          IMAGE_WIDTH,
-          IMAGE_HEIGHT,
+          targetImageWidth,
+          targetImageHeight,
           gCheckerBoardData16,
           CompressionType.ZIP_WITH_PREDICTION);
 
@@ -561,25 +557,25 @@ int sampleWritePsd() {
 
     // write an RGB PSD file, 32-bit
     var document = createExportDocument(
-        IMAGE_WIDTH, IMAGE_HEIGHT, 32, ExportColorMode.RGB);
+        targetImageWidth, targetImageHeight, 32, ExportColorMode.RGB);
     {
       final layer1 = addLayer(document, 'MUL pattern');
-      updateLayer(document, layer1, ExportChannel.RED, 0, 0, IMAGE_WIDTH,
-          IMAGE_HEIGHT, gMultiplyData32, CompressionType.RAW);
-      updateLayer(document, layer1, ExportChannel.GREEN, 0, 0, IMAGE_WIDTH,
-          IMAGE_HEIGHT, gMultiplyData32, CompressionType.RLE);
-      updateLayer(document, layer1, ExportChannel.BLUE, 0, 0, IMAGE_WIDTH,
-          IMAGE_HEIGHT, gMultiplyData32, CompressionType.ZIP);
+      updateLayer(document, layer1, ExportChannel.RED, 0, 0, targetImageWidth,
+          targetImageHeight, gMultiplyData32, CompressionType.RAW);
+      updateLayer(document, layer1, ExportChannel.GREEN, 0, 0, targetImageWidth,
+          targetImageHeight, gMultiplyData32, CompressionType.RLE);
+      updateLayer(document, layer1, ExportChannel.BLUE, 0, 0, targetImageWidth,
+          targetImageHeight, gMultiplyData32, CompressionType.ZIP);
 
       final layer2 = addLayer(document, 'Mixed pattern with transparency');
-      updateLayer(document, layer2, ExportChannel.RED, 0, 0, IMAGE_WIDTH,
-          IMAGE_HEIGHT, gMultiplyData32, CompressionType.RLE);
-      updateLayer(document, layer2, ExportChannel.GREEN, 0, 0, IMAGE_WIDTH,
-          IMAGE_HEIGHT, gXorData32, CompressionType.ZIP);
-      updateLayer(document, layer2, ExportChannel.BLUE, 0, 0, IMAGE_WIDTH,
-          IMAGE_HEIGHT, gOrData32, CompressionType.ZIP_WITH_PREDICTION);
-      updateLayer(document, layer2, ExportChannel.ALPHA, 0, 0, IMAGE_WIDTH,
-          IMAGE_HEIGHT, gCheckerBoardData32, CompressionType.RAW);
+      updateLayer(document, layer2, ExportChannel.RED, 0, 0, targetImageWidth,
+          targetImageHeight, gMultiplyData32, CompressionType.RLE);
+      updateLayer(document, layer2, ExportChannel.GREEN, 0, 0, targetImageWidth,
+          targetImageHeight, gXorData32, CompressionType.ZIP);
+      updateLayer(document, layer2, ExportChannel.BLUE, 0, 0, targetImageWidth,
+          targetImageHeight, gOrData32, CompressionType.ZIP_WITH_PREDICTION);
+      updateLayer(document, layer2, ExportChannel.ALPHA, 0, 0, targetImageWidth,
+          targetImageHeight, gCheckerBoardData32, CompressionType.RAW);
 
       updateMergedImage(
           document, gMultiplyData32, gXorData32, gCheckerBoardData32);
