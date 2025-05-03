@@ -1,7 +1,6 @@
 import 'dart:typed_data';
 
 import 'package:psd_sdk/psd_sdk.dart';
-import 'package:psd_sdk/src/file.dart';
 import '../example/psd_sdk_example.dart';
 import 'package:test/test.dart';
 import 'dart:io' as io;

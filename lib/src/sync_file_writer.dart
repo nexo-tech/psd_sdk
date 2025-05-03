@@ -6,7 +6,7 @@ class SyncFileWriter {
   SyncFileWriter(File file) : _file = file;
 
   /// Writes count bytes from buffer synchronously, incrementing the internal write position.
-  void write<T>(T buffer, [int count]) {
+  void write<T>(T buffer, [int? count]) {
     if (buffer is ByteBuffer) {
       count ??= buffer.lengthInBytes;
       _bytes.addAll(buffer.asUint8List().sublist(0, count));

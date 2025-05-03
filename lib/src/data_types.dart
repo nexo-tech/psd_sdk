@@ -42,42 +42,42 @@ bool isDouble<T extends NumDataType>() {
 }
 
 void setByteData<T extends NumDataType>(ByteData data, num value,
-    [Endian endian]) {
+    [Endian? endian]) {
   endian ??= Endian.host;
   switch (T) {
+    // TODO: Check if this is correct
     case Float64T:
-      data.setFloat64(0, value, endian);
+      data.setFloat64(0, value.toDouble(), endian);
       break;
     case Float32T:
-      data.setFloat32(0, value, endian);
+      data.setFloat32(0, value.toDouble(), endian);
       break;
     case Uint16T:
-      data.setUint16(0, value, endian);
+      data.setUint16(0, value.toInt(), endian);
       break;
     case Int16T:
-      data.setInt16(0, value, endian);
+      data.setInt16(0, value.toInt(), endian);
       break;
     case Int32T:
-      data.setInt32(0, value, endian);
+      data.setInt32(0, value.toInt(), endian);
       break;
     case Uint32T:
-      data.setUint32(0, value, endian);
+      data.setUint32(0, value.toInt(), endian);
       break;
     case Int64T:
-      data.setInt64(0, value, endian);
+      data.setInt64(0, value.toInt(), endian);
       break;
     case Uint64T:
-      data.setUint64(0, value, endian);
+      data.setUint64(0, value.toInt(), endian);
       break;
     case Uint8T:
-      data.setUint8(0, value);
+      data.setUint8(0, value.toInt());
       break;
     case Int8T:
-      data.setInt8(0, value);
+      data.setInt8(0, value.toInt());
       break;
     default:
       throw Error();
-      break;
   }
 }
 

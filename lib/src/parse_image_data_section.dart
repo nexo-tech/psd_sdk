@@ -13,7 +13,7 @@ import 'sync_file_reader.dart';
 /// Parses the image data section in the document, and returns a newly created instance.
 /// It is valid to parse different sections of a document (e.g. using parseImageResourcesSection, parseImageDataSection,
 /// or parseLayerMaskSection) in parallel from different threads.
-ImageDataSection parseImageDataSection(Document document, File file) {
+ImageDataSection? parseImageDataSection(Document document, File file) {
   // this is the merged image. it is only stored if "maximize compatibility" is turned on when saving a PSD file.
   // image data is stored in planar order: first red data, then green data, and so on.
   // each plane is stored in scan-line order, with no padding bytes.
@@ -77,7 +77,7 @@ ImageDataSection parseImageDataSection(Document document, File file) {
   return imageData;
 }
 
-ImageDataSection _readImageDataSectionRaw(SyncFileReader reader, int width,
+ImageDataSection? _readImageDataSectionRaw(SyncFileReader reader, int width,
     int height, int channelCount, int bytesPerPixel) {
   final size = width * height;
   if (size == 0) {
@@ -96,7 +96,7 @@ ImageDataSection _readImageDataSectionRaw(SyncFileReader reader, int width,
   return imageData;
 }
 
-ImageDataSection _readImageDataSectionRLE(SyncFileReader reader, int width,
+ImageDataSection? _readImageDataSectionRLE(SyncFileReader reader, int width,
     int height, int channelCount, int bytesPerPixel) {
   // the RLE-compressed data is preceded by a 2-byte data count for each scan line, per channel.
   // we store the size of the RLE data per channel, and assume a maximum of 256 channels.
@@ -139,10 +139,16 @@ ImageDataSection _readImageDataSectionRLE(SyncFileReader reader, int width,
 }
 
 void _endianConvert<T extends NumDataType>(
-    List<PlanarImage> images, int width, int height, int channelCount) {
+    List<PlanarImage>? images, int width, int height, int channelCount) {
+  if (images == null) {
+    return;
+  }
   final size = width * height;
   for (var i = 0; i < channelCount; ++i) {
-    var byteData = images[i].data.buffer.asByteData();
+    var byteData = images[i].data?.buffer.asByteData();
+    if (byteData == null) {
+      continue;
+    }
 
     final sizeofT = sizeof<T>();
     var copied = Uint8List(size * sizeofT);

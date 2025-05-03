@@ -6,7 +6,7 @@ import 'document.dart';
 import 'file.dart';
 
 /// Parses only the header and section offsets, and returns a newly created document.
-Document createDocument(File file) {
+Document? createDocument(File file) {
   final reader = SyncFileReader(file);
   reader.setPosition(0);
 
