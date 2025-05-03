@@ -17,10 +17,10 @@ class ExportDocument {
   static const maxLayerCount = 128;
   static const maxAlphaChannelCount = 128;
 
-  int? width;
-  int? height;
-  int? bitsPerChannel;
-  ExportColorMode? colorMode;
+  final int width;
+  final int height;
+  final int bitsPerChannel;
+  final ExportColorMode colorMode;
 
   List<ExportMetaDataAttribute>? attributes;
   int get attributeCount => attributes?.length ?? 0;
@@ -45,13 +45,7 @@ class ExportDocument {
   Thumbnail? thumbnail;
 
   /// Creates a new document suited for exporting a PSD file.
-  ExportDocument(int canvasWidth, int canvasHeight, int bitsPerChannel,
-      ExportColorMode colorMode) {
-    width = canvasWidth;
-    height = canvasHeight;
-    bitsPerChannel = bitsPerChannel;
-    colorMode = colorMode;
-
+  ExportDocument(this.width, this.height, this.bitsPerChannel, this.colorMode) {
     attributes = [];
     layers = [];
 
@@ -62,6 +56,10 @@ class ExportDocument {
     exifData;
 
     thumbnail;
+  }
+
+  void write(File file) {
+    writeDocument(this, file);
   }
 
   ExportLayer? addLayer(ExportDocument document, String name) {
@@ -164,9 +162,5 @@ class ExportDocument {
     } else {
       print('unsupported');
     }
-  }
-
-  void write(File file) {
-    writeDocument(this, file);
   }
 }

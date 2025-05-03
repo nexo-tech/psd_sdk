@@ -4,7 +4,7 @@
 [![style: very good analysis](https://img.shields.io/badge/style-very_good_analysis-B22C89.svg)](https://pub.dev/packages/very_good_analysis)
 [![License: BSD-3-Clause](https://img.shields.io/badge/License-BSD--3--Clause-blue.svg)](https://opensource.org/licenses/BSD-3-Clause)
 
-A high-performance Dart library for reading and manipulating Photoshop PSD files. This library is a Dart port of the original [psd_sdk](https://github.com/MolecularMatters/psd_sdk) by [Molecular Matters](https://molecular-matters.com/).
+A Dart library for reading and manipulating Photoshop PSD files. This library is a Dart port of the original [psd_sdk](https://github.com/MolecularMatters/psd_sdk) by [Molecular Matters](https://molecular-matters.com/).
 
 ## Features
 
@@ -40,22 +40,27 @@ dart pub get
 
 ## Usage
 
-### Basic Example
+### Reading a PSD File
 
 ```dart
+import 'dart:io';
 import 'package:psd_sdk/psd_sdk.dart';
 
 void main() async {
   // Load a PSD file
-  final psd = await PsdDocument.load('path/to/your/file.psd');
-  
+  final file = File.fromByteData(File('path/to/your/file.psd').readAsBytesSync());
+  final document = Document.fromFile(file);
+
   // Access document properties
-  print('Width: ${psd.width}');
-  print('Height: ${psd.height}');
-  print('Color Mode: ${psd.colorMode}');
-  
-  // Iterate through layers
-  for (final layer in psd.layers) {
+  print('Width: ${document.width}');
+  print('Height: ${document.height}');
+  print('Color Mode: ${document.colorMode}');
+  print('Bits per Channel: ${document.bitsPerChannel}');
+
+  // Parse and access layers
+  final layerMaskSection = document.parseLayerMaskSection(file);
+  for (final layer in layerMaskSection?.layers ?? []) {
+    layer.extract(file);
     print('Layer: ${layer.name}');
     print('Visible: ${layer.visible}');
     print('Opacity: ${layer.opacity}');
@@ -63,16 +68,44 @@ void main() async {
 }
 ```
 
-### Advanced Usage
+### Writing a PSD File
 
 ```dart
-// Access specific layer data
-final layer = psd.layers[0];
-final channelData = layer.channels[ChannelType.r];
-final maskData = layer.mask;
+import 'dart:io';
+import 'package:psd_sdk/psd_sdk.dart';
 
-// Export layer data
-final imageData = await layer.export();
+void main() async {
+  // Create a new PSD document
+  final document = ExportDocument(
+    800,  // width
+    600,  // height
+    8,    // bits per channel
+    ExportColorMode.rgb  // color mode
+  );
+
+  // Add a layer
+  final layer = document.addLayer(document, 'My Layer');
+  
+  // Create some sample data
+  final data = Uint8List(800 * 600);
+  for (var i = 0; i < data.length; i++) {
+    data[i] = (i % 255).toInt();
+  }
+
+  // Update layer with data
+  document.updateLayer(
+    layer!,
+    ExportChannel.red,
+    0, 0, 800, 600,  // x, y, width, height
+    data,
+    CompressionType.raw
+  );
+
+  // Write to file
+  final file = File();
+  document.write(file);
+  File('output.psd').writeAsBytesSync(file.bytes!);
+}
 ```
 
 ## API Reference
