@@ -1,5 +1,7 @@
 import 'dart:typed_data';
 
+import 'channel_type.dart';
+
 /// A struct representing a channel as stored in the layers of the Layer Mask section.
 class Channel {
   /// The offset from the start of the file where the channel's data is stored.
@@ -12,5 +14,5 @@ class Channel {
   Uint8List? data;
 
   /// One of the channelType constants denoting the type of data.
-  int? type;
+  ChannelType? type;
 }

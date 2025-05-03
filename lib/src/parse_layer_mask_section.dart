@@ -119,7 +119,7 @@ LayerMaskSection _parseLayer(Document document, SyncFileReader reader,
         final channel = Channel();
         channel.fileOffset = 0;
         channel.data = null;
-        channel.type = reader.readInt16();
+        channel.type = ChannelType.fromValue(reader.readInt16());
         channel.size = reader.readUint32();
 
         layer.channels![j] = channel;
@@ -680,7 +680,7 @@ void extractLayer(Document document, File file, Layer layer) {
     // layer masks sometimes don't have any planar data stored for them, because they are
     // e.g. pure black or white, which means they only get assigned a default color.
     if (channel.data == null) {
-      if (channel.type != null && channel.type! < 0) {
+      if (channel.type != null && channel.type!.value < 0) {
         // this is a layer mask, so create planar data for it
         final dataSize = width.value != null && height.value != null
             ? width.value! * height.value! * document.bitsPerChannel! / 8

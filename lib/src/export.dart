@@ -531,7 +531,7 @@ void writeDocument(ExportDocument document, File file) {
     for (var j = 0; j < ExportLayer.maxChannelCount; ++j) {
       if (layer.channelData[j] != null) {
         final channelId = _getChannelId(j);
-        _writeToFileBE<Int16T>(writer, channelId);
+        _writeToFileBE<Int16T>(writer, channelId?.value ?? 0);
 
         // channel data always has a 2-byte compression type in front of the data
         final channelDataSize = layer.channelSize[j] + 2;
@@ -982,7 +982,7 @@ int _getChannelCount(ExportLayer layer) {
   return count;
 }
 
-int _getChannelId(int channelIndex) {
+ChannelType? _getChannelId(int channelIndex) {
   switch (channelIndex) {
     case 0:
       return ChannelType.r;
@@ -997,7 +997,7 @@ int _getChannelId(int channelIndex) {
       return ChannelType.transparencyMask;
 
     default:
-      return 0;
+      return null;
   }
 }
 

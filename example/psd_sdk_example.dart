@@ -4,7 +4,7 @@ import 'package:psd_sdk/psd_sdk.dart';
 import 'tga_exporter.dart' as tga_exporter;
 import 'dart:io' as io;
 
-int? findChannel(Layer layer, int channelType) {
+int? findChannel(Layer layer, ChannelType channelType) {
   for (var i = 0; i < layer.channelCount; ++i) {
     var channel = layer.channels![i];
     if (channel!.data != null && channel.type == channelType) {
