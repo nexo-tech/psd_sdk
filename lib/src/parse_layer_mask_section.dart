@@ -56,9 +56,9 @@ LayerMaskSection? parseLayerMaskSection(Document document, File file) {
       var height = _Ref(0);
       _getExtents(layer, width, height);
 
-      final isGroupStart = (layer.type == LayerType.OPEN_FOLDER) ||
-          (layer.type == LayerType.CLOSED_FOLDER);
-      final isGroupEnd = (layer.type == LayerType.SECTION_DIVIDER);
+      final isGroupStart = (layer.type == LayerType.openFolder) ||
+          (layer.type == LayerType.closedFolder);
+      final isGroupEnd = (layer.type == LayerType.sectionDivider);
       if (isGroupEnd) {
         --stackIndex;
       } else if (isGroupStart) {
@@ -101,7 +101,7 @@ LayerMaskSection _parseLayer(Document document, SyncFileReader reader,
       layer.utf16Name = null;
       layer.layerMask = null;
       layer.vectorMask = null;
-      layer.type = LayerType.ANY;
+      layer.type = LayerType.any;
 
       layer.top = reader.readInt32();
       layer.left = reader.readInt32();
@@ -280,7 +280,7 @@ LayerMaskSection _parseLayer(Document document, SyncFileReader reader,
 
         // read "Section divider setting" to identify whether a layer is a group, or a section divider
         if (key == keyValue('lsct')) {
-          layer.type = reader.readUint32();
+          layer.type = LayerType.values[reader.readUint32()];
 
           // skip the rest of the data
           reader.skip(length - 4);

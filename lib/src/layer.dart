@@ -3,6 +3,7 @@ import 'dart:typed_data';
 import 'channel.dart';
 import 'layer_mask.dart';
 import 'layer_rect.dart';
+import 'layer_type.dart';
 
 /// A struct representing a layer as stored in the Layer Mask Info section.
 class Layer implements LayerRect {
@@ -53,7 +54,7 @@ class Layer implements LayerRect {
   int? clipping;
 
   /// The layer's type. Can be any of layerType::Enum.
-  int? type;
+  LayerType type = LayerType.any;
 
   /// The layer's visibility.
   bool? isVisible;

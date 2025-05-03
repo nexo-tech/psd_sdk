@@ -8,26 +8,23 @@ import 'canvas_data_test.dart';
 
 const int CHANNEL_NOT_FOUND = -1;
 
-int main() {
+void main() {
   final srcPath = '${getSampleInputPath()}Sample.psd';
   var file = File();
   try {
     file.setByteData(io.File(srcPath).readAsBytesSync());
   } catch (e) {
-    print('Cannot open file.');
-    return 1;
+    throw Exception('Cannot open file.');
   }
 
   final document = createDocument(file);
   if (document == null) {
-    print('Cannot create document.');
-    return 1;
+    throw Exception('Cannot create document.');
   }
 
   // the sample only supports RGB colormode
   if (document.colorMode != ColorMode.RGB) {
-    print('Document is not in RGB color mode.\n');
-    return 1;
+    throw Exception('Document is not in RGB color mode.');
   }
 
   final layerMaskSection = parseLayerMaskSection(document, file);
@@ -128,7 +125,6 @@ int main() {
   group('Canvas data group', () {
     testCanvasData(document, file, layer!);
   });
-  return 0;
 }
 
 void testCanvasData(Document document, File file, Layer layer) {
