@@ -1,4 +1,4 @@
-const psdEnableLogging = false;
+var psdEnableLogging = false;
 
 void psdWarning(List<String> args) {
   if (psdEnableLogging) {
@@ -28,4 +28,12 @@ String popLastError([String defaultVal = 'Unknown error']) {
   final err = lastError.isEmpty ? defaultVal : lastError;
   lastError = '';
   return err;
+}
+
+void enableLogging() {
+  psdEnableLogging = true;
+}
+
+void disableLogging() {
+  psdEnableLogging = false;
 }

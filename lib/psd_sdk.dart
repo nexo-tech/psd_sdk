@@ -18,3 +18,4 @@ export 'src/export_color_mode.dart';
 export 'src/export_channel.dart';
 export 'src/compression_type.dart';
 export 'src/blend_mode.dart';
+export 'src/log_public.dart';
