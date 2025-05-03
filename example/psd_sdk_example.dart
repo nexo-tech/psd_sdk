@@ -483,22 +483,22 @@ int sampleWritePsd() {
       // blue, and a mix) as additional channels.
       {
         final spotIndex = addAlphaChannel(
-            document, 'Spot Red', 65535, 0, 0, 0, 100, AlphaChannelMode.SPOT);
+            document, 'Spot Red', 65535, 0, 0, 0, 100, AlphaChannelMode.spot);
         updateChannel(document, spotIndex, gMultiplyData);
       }
       {
         final spotIndex = addAlphaChannel(
-            document, 'Spot Green', 0, 65535, 0, 0, 75, AlphaChannelMode.SPOT);
+            document, 'Spot Green', 0, 65535, 0, 0, 75, AlphaChannelMode.spot);
         updateChannel(document, spotIndex, gXorData);
       }
       {
         final spotIndex = addAlphaChannel(
-            document, 'Spot Blue', 0, 0, 65535, 0, 50, AlphaChannelMode.SPOT);
+            document, 'Spot Blue', 0, 0, 65535, 0, 50, AlphaChannelMode.spot);
         updateChannel(document, spotIndex, gOrData);
       }
       {
         final spotIndex = addAlphaChannel(document, 'Mix', 20000, 50000, 30000,
-            0, 100, AlphaChannelMode.SPOT);
+            0, 100, AlphaChannelMode.spot);
         updateChannel(document, spotIndex, gOrData);
       }
 

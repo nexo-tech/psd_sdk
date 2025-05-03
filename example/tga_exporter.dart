@@ -35,10 +35,10 @@ void setByteData<T extends NumDataType>(ByteData data, num value,
 
 class TgaType {
   // TGA file contains BGR triplets of color data.
-  static const BGR_UNCOMPRESSED = 2;
+  static const bgrUncompressed = 2;
 
   // TGA file contains grayscale values.
-  static const MONO_UNCOMPRESSED = 3;
+  static const monoUncompressed = 3;
 }
 
 class TgaHeader {
@@ -87,9 +87,11 @@ TgaHeader createHeader(int width, int height, int type, int bitsPerPixel) {
 
 class TgaFile {
   String filename;
-  io.File _file;
+  late io.File _file;
 
-  TgaFile(this.filename) : _file = io.File(filename) {}
+  TgaFile(this.filename) {
+    _file = io.File(filename);
+  }
 
   void write<T extends NumDataType>(num value) {
     var length = sizeof<T>();
@@ -145,7 +147,7 @@ TgaFile createFile(String filename) {
 void saveMonochrome(String filename, int width, int height, Uint8List data) {
   var file = createFile(filename);
 
-  var header = createHeader(width, height, TgaType.MONO_UNCOMPRESSED, 8);
+  var header = createHeader(width, height, TgaType.monoUncompressed, 8);
   file.writeHeader(header);
   file.writeBytes(data);
   if (!file.close()) {
@@ -156,7 +158,7 @@ void saveMonochrome(String filename, int width, int height, Uint8List data) {
 void saveRGB(String filename, int width, int height, Uint8List data) {
   var file = createFile(filename);
 
-  var header = createHeader(width, height, TgaType.BGR_UNCOMPRESSED, 24);
+  var header = createHeader(width, height, TgaType.bgrUncompressed, 24);
   file.writeHeader(header);
 
   final colors = Uint8List(width * height * 3);
@@ -181,7 +183,7 @@ void saveRGB(String filename, int width, int height, Uint8List data) {
 void saveRGBA(String filename, int width, int height, Uint8List data) {
   var file = createFile(filename);
 
-  var header = createHeader(width, height, TgaType.BGR_UNCOMPRESSED, 32);
+  var header = createHeader(width, height, TgaType.bgrUncompressed, 32);
   file.writeHeader(header);
 
   final colors = Uint8List(width * height * 4);

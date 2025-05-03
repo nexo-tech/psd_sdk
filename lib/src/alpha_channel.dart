@@ -1,12 +1,12 @@
 class AlphaChannelMode {
   /// The channel stores alpha data.
-  static const ALPHA = 0;
+  static const alpha = 0;
 
   /// The channel stores inverted alpha data.
-  static const INVERTED_ALPHA = 1;
+  static const invertedAlpha = 1;
 
   /// The channel stores spot color data.
-  static const SPOT = 2;
+  static const spot = 2;
 }
 
 /// A struct representing an alpha channel as stored in the image resources section.
