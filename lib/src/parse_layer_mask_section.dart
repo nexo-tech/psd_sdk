@@ -611,7 +611,6 @@ void extractLayer(Document document, File file, Layer layer) {
     var width = _Ref(0);
     var height = _Ref(0);
     _getChannelExtents(layer, channel, width, height);
-
     // channel data is stored in 4 different formats, which is denoted by a 2-byte integer
     assert(channel.data == null, 'Channel data has already been loaded.');
     final compressionType = reader.readUint16();
