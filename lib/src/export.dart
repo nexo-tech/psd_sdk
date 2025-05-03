@@ -13,12 +13,6 @@ import 'key.dart';
 
 /// Exports a document to the given file.
 void writeDocument(ExportDocument document, File file) {
-  if (document.width == null ||
-      document.height == null ||
-      document.bitsPerChannel == null ||
-      document.colorMode == null) {
-    throw ArgumentError('Document is not fully initialized');
-  }
   var writer = SyncFileWriter(file);
 
   // signature
@@ -33,14 +27,14 @@ void writeDocument(ExportDocument document, File file) {
 
   // channel count
   final documentChannelCount =
-      (document.colorMode?.value ?? 0 + document.alphaChannelCount);
+      document.colorMode.value + document.alphaChannelCount;
   _writeToFileBE<Uint16T>(writer, documentChannelCount);
 
   // header
-  final mode = (document.colorMode?.value ?? 0);
-  _writeToFileBE<Uint32T>(writer, document.height ?? 0);
-  _writeToFileBE<Uint32T>(writer, document.width ?? 0);
-  _writeToFileBE<Uint16T>(writer, document.bitsPerChannel ?? 0);
+  final mode = (document.colorMode.value);
+  _writeToFileBE<Uint32T>(writer, document.height);
+  _writeToFileBE<Uint32T>(writer, document.width);
+  _writeToFileBE<Uint16T>(writer, document.bitsPerChannel);
   _writeToFileBE<Uint16T>(writer, mode);
 
   if (document.bitsPerChannel == 32) {
@@ -476,7 +470,7 @@ void writeDocument(ExportDocument document, File file) {
   // merged data section
   {
     final size =
-        document.width! * document.height! * document.bitsPerChannel! ~/ 8;
+        document.width * document.height * document.bitsPerChannel ~/ 8;
     var emptyMemory = Uint8List(size);
 
     // write merged image
@@ -748,7 +742,7 @@ void updateMergedImageImpl<T extends NumDataType>(ExportDocument document,
   // free old data
 
   // copy raw data
-  final size = (document.width ?? 0) * (document.height ?? 0);
+  final size = document.width * document.height;
   var memoryR = getTypedList<T>(Uint8List(size * sizeof<T>())) as List;
   var memoryG = getTypedList<T>(Uint8List(size * sizeof<T>())) as List;
   var memoryB = getTypedList<T>(Uint8List(size * sizeof<T>())) as List;
@@ -780,7 +774,7 @@ void updateChannelImpl<T extends NumDataType>(
   // free old data
 
   // copy raw data
-  var size = (document.width ?? 0) * (document.height ?? 0);
+  var size = document.width * document.height;
   var channelData = getTypedList<T>(Uint8List(size * sizeof<T>())) as List;
   for (var i = 0; i < size; ++i) {
     channelData[i] = nativeToBigEndian<T>((data as List)[i]);
