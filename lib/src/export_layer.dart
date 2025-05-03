@@ -2,6 +2,8 @@ import 'dart:typed_data';
 
 /// A struct representing a layer as exported to the Layer Mask section.
 class ExportLayer {
+  final int index;
+  ExportLayer(this.index);
   // the SDK currently supports R, G, B, A
   static const int maxChannelCount = 4;
 

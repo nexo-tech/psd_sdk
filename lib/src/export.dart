@@ -8,135 +8,8 @@ import 'package:psd_sdk/src/sync_file_writer.dart';
 import 'bit_util.dart';
 import 'data_types.dart';
 import 'decompress_rle.dart';
-import 'export_metadata_attribute.dart';
 import 'image_resource_type.dart';
 import 'key.dart';
-
-/// Creates a new document suited for exporting a PSD file.
-ExportDocument createExportDocument(int canvasWidth, int canvasHeight,
-    int bitsPerChannel, ExportColorMode colorMode) {
-  var document = ExportDocument();
-
-  document.width = canvasWidth;
-  document.height = canvasHeight;
-  document.bitsPerChannel = bitsPerChannel;
-  document.colorMode = colorMode;
-
-  document.attributes = [];
-  document.layers = [];
-
-  document.alphaChannels = [];
-
-  document.iccProfile;
-
-  document.exifData;
-
-  document.thumbnail;
-
-  return document;
-}
-
-/// Adds meta data to a document. The contents of name and value are copied. The returned index can be used to update existing meta data
-/// by a call to UpdateMetaData.
-int addMetaData(ExportDocument document, String name, String value) {
-  final index = document.attributeCount;
-  document.attributes?.add(ExportMetaDataAttribute());
-  _updateMetaData(document, index, name, value);
-
-  return index;
-}
-
-/// Adds a layer to a document. The returned index can be used to update layer data by a call to updateLayer.
-int addLayer(ExportDocument document, String name) {
-  final index = document.layerCount;
-  document.layers?.add(ExportLayer());
-
-  var layer = document.layers?[index];
-  if (layer == null) {
-    return -1;
-  }
-  layer.name = _createString(name);
-  return index;
-}
-
-/// Updates a layer with planar data. The function internally takes ownership over all data, so planar image data passed to this function can be freed afterwards.
-/// Planar data must hold "width*height" bytes, where width = right - left and height = botttom - top.
-/// Note that individual layers can be smaller and/or larger than the canvas in PSD documents.
-void updateLayer<T extends TypedData>(
-    ExportDocument document,
-    int layerIndex,
-    ExportChannel channel,
-    int left,
-    int top,
-    int right,
-    int bottom,
-    TypedData planarData,
-    CompressionType compression) {
-  if (planarData is Uint8List) {
-    _updateLayerImpl<Uint8T>(document, layerIndex, channel, left, top, right,
-        bottom, planarData, compression);
-  } else if (planarData is Uint16List) {
-    _updateLayerImpl<Uint16T>(document, layerIndex, channel, left, top, right,
-        bottom, planarData, compression);
-  } else if (planarData is Float32List) {
-    _updateLayerImpl<Float32T>(document, layerIndex, channel, left, top, right,
-        bottom, planarData, compression);
-  } else {
-    print('not supported');
-  }
-}
-
-/// Adds an alpha channel to a document. The returned index can be used to update channel data by a call to updateChannel.
-int addAlphaChannel(ExportDocument document, String name, int r, int g, int b,
-    int a, int opacity, int mode) {
-  final index = document.alphaChannelCount;
-  document.alphaChannels.add(AlphaChannel());
-
-  var channel = document.alphaChannels[index];
-  channel!.asciiName = name;
-  channel.colorSpace = 0;
-  channel.color[0] = r;
-  channel.color[1] = g;
-  channel.color[2] = b;
-  channel.color[3] = a;
-  channel.opacity = opacity;
-  channel.mode = mode;
-
-  return index;
-}
-
-/// Updates a layer with planar 32-bit data. The function internally takes ownership over all data, so planar image data passed to this function can be freed afterwards.
-/// Planar data must hold "width*height*4" bytes, where width = right - left and height = botttom - top.
-/// Note that individual layers can be smaller and/or larger than the canvas in PSD documents.
-void updateChannel(ExportDocument document, int channelIndex, TypedData data) {
-  if (data is Uint8List) {
-    _updateChannelImpl<Uint8T>(document, channelIndex, data);
-  } else if (data is Uint16List) {
-    _updateChannelImpl<Uint16T>(document, channelIndex, data);
-  } else if (data is Float32List) {
-    _updateChannelImpl<Float32T>(document, channelIndex, data);
-  } else {
-    print('unsupported');
-  }
-}
-
-/// Updates the merged image data.
-/// Planar data must hold width*height bytes.
-void updateMergedImage(ExportDocument document, TypedData planarDataR,
-    TypedData planarDataG, TypedData planarDataB) {
-  if (planarDataR is Uint8List) {
-    _updateMergedImageImpl<Uint8T>(
-        document, planarDataR, planarDataG, planarDataB);
-  } else if (planarDataR is Uint16List) {
-    _updateMergedImageImpl<Uint16T>(
-        document, planarDataR, planarDataG, planarDataB);
-  } else if (planarDataR is Float32List) {
-    _updateMergedImageImpl<Float32T>(
-        document, planarDataR, planarDataG, planarDataB);
-  } else {
-    print('unsupported');
-  }
-}
 
 /// Exports a document to the given file.
 void writeDocument(ExportDocument document, File file) {
@@ -629,20 +502,6 @@ void writeDocument(ExportDocument document, File file) {
   writer.save();
 }
 
-String _createString(String str) {
-  return str;
-}
-
-void _updateMetaData(
-    ExportDocument document, int index, String name, String value) {
-  var attribute = document.attributes?[index];
-  if (attribute == null) {
-    return;
-  }
-  attribute.name = _createString(name);
-  attribute.value = _createString(value);
-}
-
 int _getChannelIndex(ExportChannel channel) {
   switch (channel) {
     case ExportChannel.gray:
@@ -665,7 +524,7 @@ int _getChannelIndex(ExportChannel channel) {
   }
 }
 
-void _updateLayerImpl<T extends NumDataType>(
+void updateLayerImpl<T extends NumDataType>(
     ExportDocument document,
     int layerIndex,
     ExportChannel channel,
@@ -884,7 +743,7 @@ void _createDataRLE<T extends NumDataType>(ExportLayer layer, int channelIndex,
   layer.channelSize[channelIndex] = offset + height * sizeof<Uint16T>();
 }
 
-void _updateMergedImageImpl<T extends NumDataType>(ExportDocument document,
+void updateMergedImageImpl<T extends NumDataType>(ExportDocument document,
     TypedData planarDataR, TypedData planarDataG, TypedData planarDataB) {
   // free old data
 
@@ -916,7 +775,7 @@ const xmpFooter = '''</rdf:Description>\n
 		</rdf:RDF>\n
 		</x:xmpmeta>\n''';
 
-void _updateChannelImpl<T extends NumDataType>(
+void updateChannelImpl<T extends NumDataType>(
     ExportDocument document, int channelIndex, TypedData data) {
   // free old data
 

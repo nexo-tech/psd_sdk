@@ -31,18 +31,18 @@ ImageDataSection? parseImageDataSection(Document document, File file) {
   var reader = SyncFileReader(file);
   reader.setPosition(section.offset ?? 0);
 
-  ImageDataSection? imageData = ImageDataSection();
+  ImageDataSection? imageData;
   final width = document.width;
   final height = document.height;
   final bitsPerChannel = document.bitsPerChannel;
   final channelCount = document.channelCount;
   final compressionType = CompressionType.fromValue(reader.readUint16());
   if (compressionType == CompressionType.raw) {
-    imageData = _readImageDataSectionRaw(reader, width ?? 0, height ?? 0,
-        channelCount ?? 0, (bitsPerChannel ?? 0) ~/ 8);
+    imageData = _readImageDataSectionRaw(document, reader, width ?? 0,
+        height ?? 0, channelCount ?? 0, (bitsPerChannel ?? 0) ~/ 8);
   } else if (compressionType == CompressionType.rle) {
-    imageData = _readImageDataSectionRLE(reader, width ?? 0, height ?? 0,
-        channelCount ?? 0, (bitsPerChannel ?? 0) ~/ 8);
+    imageData = _readImageDataSectionRLE(document, reader, width ?? 0,
+        height ?? 0, channelCount ?? 0, (bitsPerChannel ?? 0) ~/ 8);
   } else {
     psdError(['ImageData', 'Unhandled compression type $compressionType.']);
   }
@@ -80,14 +80,19 @@ ImageDataSection? parseImageDataSection(Document document, File file) {
   return imageData;
 }
 
-ImageDataSection? _readImageDataSectionRaw(SyncFileReader reader, int width,
-    int height, int channelCount, int bytesPerPixel) {
+ImageDataSection? _readImageDataSectionRaw(
+    Document document,
+    SyncFileReader reader,
+    int width,
+    int height,
+    int channelCount,
+    int bytesPerPixel) {
   final size = width * height;
   if (size == 0) {
     return null;
   }
 
-  var imageData = ImageDataSection();
+  var imageData = ImageDataSection(document);
   imageData.images = List<PlanarImage?>.filled(channelCount, null);
 
   // read data for all channels at once
@@ -103,8 +108,13 @@ ImageDataSection? _readImageDataSectionRaw(SyncFileReader reader, int width,
   return imageData;
 }
 
-ImageDataSection? _readImageDataSectionRLE(SyncFileReader reader, int width,
-    int height, int channelCount, int bytesPerPixel) {
+ImageDataSection? _readImageDataSectionRLE(
+    Document document,
+    SyncFileReader reader,
+    int width,
+    int height,
+    int channelCount,
+    int bytesPerPixel) {
   // the RLE-compressed data is preceded by a 2-byte data count for each scan line, per channel.
   // we store the size of the RLE data per channel, and assume a maximum of 256 channels.
   assert(channelCount < 256,
@@ -127,7 +137,7 @@ ImageDataSection? _readImageDataSectionRLE(SyncFileReader reader, int width,
   }
 
   final size = width * height;
-  var imageData = ImageDataSection();
+  var imageData = ImageDataSection(document);
   imageData.images = List<PlanarImage?>.filled(channelCount, null);
 
   for (var i = 0; i < channelCount; ++i) {

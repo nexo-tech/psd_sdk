@@ -95,7 +95,7 @@ LayerMaskSection _parseLayer(Document document, SyncFileReader reader,
 
     // read layer record for each layer
     for (var i = 0; i < layerMaskSection.layerCount; ++i) {
-      final layer = Layer();
+      final layer = Layer(document);
       layerMaskSection.layers![i] = layer;
 
       layer.parent = null;
@@ -116,7 +116,7 @@ LayerMaskSection _parseLayer(Document document, SyncFileReader reader,
 
       // parse each channel
       for (var j = 0; j < channelCount; ++j) {
-        final channel = Channel();
+        final channel = Channel(j);
         channel.fileOffset = 0;
         channel.data = null;
         channel.type = ChannelType.fromValue(reader.readInt16());

@@ -1,12 +1,19 @@
 import 'dart:typed_data';
 
 import 'channel.dart';
+import 'channel_type.dart';
 import 'layer_mask.dart';
 import 'layer_rect.dart';
 import 'layer_type.dart';
+import 'document.dart';
+import 'file.dart';
+import 'parse_layer_mask_section.dart' as parse_layer_mask_section;
 
 /// A struct representing a layer as stored in the Layer Mask Info section.
 class Layer implements LayerRect {
+  Layer(this.document);
+  final Document document;
+
   /// The layer's parent layer, if any.
   Layer? parent;
 
@@ -58,4 +65,18 @@ class Layer implements LayerRect {
 
   /// The layer's visibility.
   bool? isVisible;
+
+  void extract(File file) {
+    parse_layer_mask_section.extractLayer(document, file, this);
+  }
+
+  Channel? findChannel(ChannelType channelType) {
+    for (var i = 0; i < channelCount; ++i) {
+      var channel = channels![i];
+      if (channel!.data != null && channel.type == channelType) {
+        return channel;
+      }
+    }
+    return null;
+  }
 }

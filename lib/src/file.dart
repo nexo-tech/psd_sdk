@@ -6,15 +6,25 @@ class File {
   ByteBuffer? get buffer => uint8list?.buffer;
   ByteData? get byteData => _byteData;
 
-  void setByteData(Uint8List bytes) {
-    uint8list = bytes;
-    _byteData = uint8list?.buffer.asByteData();
-  }
-
   int getSize() => uint8list?.length ?? 0;
 
   Uint8List? uint8list;
   ByteData? _byteData;
 
-  File();
+  File()
+      : uint8list = null,
+        _byteData = null;
+
+  /// Creates a new [File] instance from [ByteData].
+  ///
+  /// This constructor initializes the file with the provided byte data,
+  /// converting it to the appropriate internal representations.
+  File.fromByteData(Uint8List data)
+      : uint8list = data,
+        _byteData = data.buffer.asByteData();
+
+  void setByteData(Uint8List data) {
+    uint8list = data;
+    _byteData = data.buffer.asByteData();
+  }
 }

@@ -23,3 +23,9 @@ var lastError = '';
 void setLastError(String err) {
   lastError = err;
 }
+
+String popLastError([String defaultVal = 'Unknown error']) {
+  final err = lastError.isEmpty ? defaultVal : lastError;
+  lastError = '';
+  return err;
+}

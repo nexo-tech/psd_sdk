@@ -4,6 +4,9 @@ import 'channel_type.dart';
 
 /// A struct representing a channel as stored in the layers of the Layer Mask section.
 class Channel {
+  Channel(this.index);
+  final int index;
+
   /// The offset from the start of the file where the channel's data is stored.
   int? fileOffset;
 

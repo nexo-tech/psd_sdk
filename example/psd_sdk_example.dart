@@ -4,17 +4,6 @@ import 'package:psd_sdk/psd_sdk.dart';
 import 'tga_exporter.dart' as tga_exporter;
 import 'dart:io' as io;
 
-int? findChannel(Layer layer, ChannelType channelType) {
-  for (var i = 0; i < layer.channelCount; ++i) {
-    var channel = layer.channels![i];
-    if (channel!.data != null && channel.type == channelType) {
-      return i;
-    }
-  }
-
-  return null;
-}
-
 String getSampleInputPath() {
   return 'example/';
 }
@@ -31,7 +20,7 @@ Uint8List? expandChannelToCanvas(
           (document.width ?? 0) *
           (document.height ?? 0),
       0));
-  if (copyLayerData(
+  if (ImageUtil.copyLayerData(
     channel.data!,
     canvasData,
     document.bitsPerChannel ?? 0,
@@ -55,7 +44,7 @@ Uint8List? expandMaskToCanvas(Document document, Mask mask) {
           (document.height ?? 0),
       0));
 
-  if (copyLayerData(
+  if (ImageUtil.copyLayerData(
       mask.data!,
       canvasData,
       document.bitsPerChannel ?? 0,
@@ -82,12 +71,7 @@ int sampleReadPsd() {
     return 1;
   }
 
-  final document = createDocument(file);
-  if (document == null) {
-    print('Cannot create document.');
-    return 1;
-  }
-
+  final document = Document.fromFile(file);
   // the sample only supports RGB colormode
   if (document.colorMode != ColorMode.rgb) {
     print('Document is not in RGB color mode.\n');
@@ -97,14 +81,14 @@ int sampleReadPsd() {
   // extract image resources section.
   // this gives access to the ICC profile, EXIF data and XMP metadata.
   {
-    var imageResourcesSection = parseImageResourcesSection(document, file);
+    var imageResourcesSection = document.parseImageResourcesSection(file);
     print('XMP metadata:');
-    print(imageResourcesSection.xmpMetadata);
+    print(imageResourcesSection?.xmpMetadata);
     print('\n');
   }
 
   var hasTransparencyMask = false;
-  final layerMaskSection = parseLayerMaskSection(document, file);
+  final layerMaskSection = document.parseLayerMaskSection(file);
 
   hasTransparencyMask = layerMaskSection?.hasTransparencyMask ?? false;
 
@@ -112,16 +96,16 @@ int sampleReadPsd() {
   // maximum efficiency.
   for (var i = 0; i < (layerMaskSection?.layerCount ?? 0); ++i) {
     var layer = layerMaskSection?.layers![i];
-    extractLayer(document, file, layer!);
+    layer?.extract(file);
 
     // check availability of R, G, B, and A channels.
     // we need to determine the indices of channels individually, because
     // there is no guarantee that R is the first channel, G is the second, B
     // is the third, and so on.
-    final indexR = findChannel(layer, ChannelType.r);
-    final indexG = findChannel(layer, ChannelType.g);
-    final indexB = findChannel(layer, ChannelType.b);
-    final indexA = findChannel(layer, ChannelType.transparencyMask);
+    final indexR = layer?.findChannel(ChannelType.r)?.index;
+    final indexG = layer?.findChannel(ChannelType.g)?.index;
+    final indexB = layer?.findChannel(ChannelType.b)?.index;
+    final indexA = layer?.findChannel(ChannelType.transparencyMask)?.index;
 
     // note that channel data is only as big as the layer it belongs to, e.g.
     // it can be smaller or bigger than the canvas, depending on where it is
@@ -133,7 +117,7 @@ int sampleReadPsd() {
     if ((indexR != null) && (indexG != null) && (indexB != null)) {
       // RGB channels were found.
       canvasData[0] =
-          expandChannelToCanvas(document, layer, layer.channels![indexR]!)!;
+          expandChannelToCanvas(document, layer, layer!.channels![indexR]!)!;
       canvasData[1] =
           expandChannelToCanvas(document, layer, layer.channels![indexG]!)!;
       canvasData[2] =
@@ -182,7 +166,7 @@ int sampleReadPsd() {
     // unfortunately it is optional. fall back to the ASCII name in case no
     // Unicode name was found.
     String layerName;
-    if (layer.utf16Name != null) {
+    if (layer!.utf16Name != null) {
       layerName =
           String.fromCharCodes(layer.utf16Name!.where((x) => x != 0x00));
     } else {
@@ -265,7 +249,7 @@ int sampleReadPsd() {
   // the final, merged image, as well as additional alpha channels. this is only
   // available when saving the document with "Maximize Compatibility" turned on.
   if (document.imageDataSection.length != 0) {
-    var imageData = parseImageDataSection(document, file);
+    var imageData = document.parseImageDataSection(file);
     if (imageData != null) {
       // interleave the planar image data into one RGB or RGBA image.
       // store the rest of the (alpha) channels and the transparency mask
@@ -332,7 +316,7 @@ int sampleReadPsd() {
       }
 
       // extract image resources in order to acquire the alpha channel names.
-      var imageResources = parseImageResourcesSection(document, file);
+      var imageResources = document.parseImageResourcesSection(file);
       // store all the extra alpha channels. in case we have a transparency
       // mask, it will always be the first of the extra channels. alpha
       // channel names can be accessed using
@@ -341,7 +325,7 @@ int sampleReadPsd() {
       // or RGBA).
       final skipImageCount = isRgb ? 3 : 4;
       for (var i = 0; i < imageCount - skipImageCount; ++i) {
-        var channel = imageResources.alphaChannels![i];
+        var channel = imageResources!.alphaChannels![i];
 
         if (document.bitsPerChannel == 8) {
           var filename = '${getSampleOutputPath()}'
@@ -417,22 +401,23 @@ int sampleWritePsd() {
     var file = File();
 
     // write an RGB PSD file, 8-bit
-    var document = createExportDocument(
+    var document = ExportDocument(
         targetImageWidth, targetImageHeight, 8, ExportColorMode.rgb);
     {
       // metadata can be added as simple key-value pairs.
       // when loading the document, they will be contained in XMP metadata such
       // as e.g. <xmp:MyAttribute>MyValue</xmp:MyAttribute>
-      addMetaData(document, 'MyAttribute', 'MyValue');
+      document.addMetaData('MyAttribute', 'MyValue');
 
       // when adding a layer to the document, you first need to get a new index
       // into the layer table. with a valid index, layers can be updated in
       // parallel, in any order. this also allows you to only update the layer
       // data that has changed, which is crucial when working with large data
       // sets.
-      final layer1 = addLayer(document, 'MUL pattern');
-      final layer2 = addLayer(document, 'XOR pattern');
-      final layer3 = addLayer(document, 'Mixed pattern with transparency');
+      final layer1 = document.addLayer(document, 'MUL pattern');
+      final layer2 = document.addLayer(document, 'XOR pattern');
+      final layer3 =
+          document.addLayer(document, 'Mixed pattern with transparency');
 
       // note that each layer has its own compression type. it is perfectly
       // legal to compress different channels of different layers with different
@@ -442,67 +427,67 @@ int sampleWritePsd() {
       // good compromise between speed and size. ZIP_WITH_PREDICTION first delta
       // encodes the data, and then zips it. slowest to write, but also smallest
       // in size for most images.
-      updateLayer(document, layer1, ExportChannel.red, 0, 0, targetImageWidth,
+      document.updateLayer(layer1!, ExportChannel.red, 0, 0, targetImageWidth,
           targetImageHeight, gMultiplyData, CompressionType.raw);
-      updateLayer(document, layer1, ExportChannel.green, 0, 0, targetImageWidth,
+      document.updateLayer(layer1, ExportChannel.green, 0, 0, targetImageWidth,
           targetImageHeight, gMultiplyData, CompressionType.raw);
-      updateLayer(document, layer1, ExportChannel.blue, 0, 0, targetImageWidth,
+      document.updateLayer(layer1, ExportChannel.blue, 0, 0, targetImageWidth,
           targetImageHeight, gMultiplyData, CompressionType.raw);
 
-      updateLayer(document, layer2, ExportChannel.red, 0, 0, targetImageWidth,
+      document.updateLayer(layer2!, ExportChannel.red, 0, 0, targetImageWidth,
           targetImageHeight, gXorData, CompressionType.raw);
-      updateLayer(document, layer2, ExportChannel.green, 0, 0, targetImageWidth,
+      document.updateLayer(layer2, ExportChannel.green, 0, 0, targetImageWidth,
           targetImageHeight, gXorData, CompressionType.raw);
-      updateLayer(document, layer2, ExportChannel.blue, 0, 0, targetImageWidth,
+      document.updateLayer(layer2, ExportChannel.blue, 0, 0, targetImageWidth,
           targetImageHeight, gXorData, CompressionType.raw);
 
-      updateLayer(document, layer3, ExportChannel.red, 0, 0, targetImageWidth,
+      document.updateLayer(layer3!, ExportChannel.red, 0, 0, targetImageWidth,
           targetImageHeight, gMultiplyData, CompressionType.raw);
-      updateLayer(document, layer3, ExportChannel.green, 0, 0, targetImageWidth,
+      document.updateLayer(layer3, ExportChannel.green, 0, 0, targetImageWidth,
           targetImageHeight, gXorData, CompressionType.raw);
-      updateLayer(document, layer3, ExportChannel.blue, 0, 0, targetImageWidth,
+      document.updateLayer(layer3, ExportChannel.blue, 0, 0, targetImageWidth,
           targetImageHeight, gOrData, CompressionType.raw);
 
       // note that transparency information is always supported, regardless of
       // the export color mode. it is saved as true transparency, and not as
       // separate alpha channel.
-      updateLayer(document, layer1, ExportChannel.alpha, 0, 0, targetImageWidth,
+      document.updateLayer(layer1, ExportChannel.alpha, 0, 0, targetImageWidth,
           targetImageHeight, gMultiplyData, CompressionType.raw);
-      updateLayer(document, layer2, ExportChannel.alpha, 0, 0, targetImageWidth,
+      document.updateLayer(layer2, ExportChannel.alpha, 0, 0, targetImageWidth,
           targetImageHeight, gXorData, CompressionType.raw);
-      updateLayer(document, layer3, ExportChannel.alpha, 0, 0, targetImageWidth,
+      document.updateLayer(layer3, ExportChannel.alpha, 0, 0, targetImageWidth,
           targetImageHeight, gOrData, CompressionType.raw);
 
       // merged image data is optional. if none is provided, black channels will
       // be exported instead.
-      updateMergedImage(document, gMultiplyData, gXorData, gOrData);
+      document.updateMergedImage(gMultiplyData, gXorData, gOrData);
 
       // when adding a channel to the document, you first need to get a new
       // index into the channel table. with a valid index, channels can be
       // updated in parallel, in any order. add four spot colors (red, green,
       // blue, and a mix) as additional channels.
       {
-        final spotIndex = addAlphaChannel(
-            document, 'Spot Red', 65535, 0, 0, 0, 100, AlphaChannelMode.spot);
-        updateChannel(document, spotIndex, gMultiplyData);
+        final spotIndex = document.addAlphaChannel(
+            'Spot Red', 65535, 0, 0, 0, 100, AlphaChannelMode.spot);
+        document.updateChannel(spotIndex, gMultiplyData);
       }
       {
-        final spotIndex = addAlphaChannel(
-            document, 'Spot Green', 0, 65535, 0, 0, 75, AlphaChannelMode.spot);
-        updateChannel(document, spotIndex, gXorData);
+        final spotIndex = document.addAlphaChannel(
+            'Spot Green', 0, 65535, 0, 0, 75, AlphaChannelMode.spot);
+        document.updateChannel(spotIndex, gXorData);
       }
       {
-        final spotIndex = addAlphaChannel(
-            document, 'Spot Blue', 0, 0, 65535, 0, 50, AlphaChannelMode.spot);
-        updateChannel(document, spotIndex, gOrData);
+        final spotIndex = document.addAlphaChannel(
+            'Spot Blue', 0, 0, 65535, 0, 50, AlphaChannelMode.spot);
+        document.updateChannel(spotIndex, gOrData);
       }
       {
-        final spotIndex = addAlphaChannel(document, 'Mix', 20000, 50000, 30000,
-            0, 100, AlphaChannelMode.spot);
-        updateChannel(document, spotIndex, gOrData);
+        final spotIndex = document.addAlphaChannel(
+            'Mix', 20000, 50000, 30000, 0, 100, AlphaChannelMode.spot);
+        document.updateChannel(spotIndex, gOrData);
       }
 
-      writeDocument(document, file);
+      document.write(file);
     }
 
     io.File(dstPath).writeAsBytesSync(file.bytes!);
@@ -514,26 +499,27 @@ int sampleWritePsd() {
 
     // write a Grayscale PSD file, 16-bit.
     // Grayscale works similar to RGB, only the types of export channels change.
-    final document = createExportDocument(
+    final document = ExportDocument(
         targetImageWidth, targetImageHeight, 16, ExportColorMode.grayscale);
     {
-      final layer1 = addLayer(document, 'MUL pattern');
-      updateLayer(document, layer1, ExportChannel.gray, 0, 0, targetImageWidth,
+      final layer1 = document.addLayer(document, 'MUL pattern');
+      document.updateLayer(layer1!, ExportChannel.gray, 0, 0, targetImageWidth,
           targetImageHeight, gMultiplyData16, CompressionType.raw);
 
-      final layer2 = addLayer(document, 'XOR pattern');
-      updateLayer(document, layer2, ExportChannel.gray, 0, 0, targetImageWidth,
+      final layer2 = document.addLayer(document, 'XOR pattern');
+      document.updateLayer(layer2!, ExportChannel.gray, 0, 0, targetImageWidth,
           targetImageHeight, gXorData16, CompressionType.rle);
 
-      final layer3 = addLayer(document, 'AND pattern');
-      updateLayer(document, layer3, ExportChannel.gray, 0, 0, targetImageWidth,
+      final layer3 = document.addLayer(document, 'AND pattern');
+      document.updateLayer(layer3!, ExportChannel.gray, 0, 0, targetImageWidth,
           targetImageHeight, gAndData16, CompressionType.zip);
 
-      final layer4 = addLayer(document, 'OR pattern with transparency');
-      updateLayer(document, layer4, ExportChannel.gray, 0, 0, targetImageWidth,
+      final layer4 =
+          document.addLayer(document, 'OR pattern with transparency');
+      document.updateLayer(layer4!, ExportChannel.gray, 0, 0, targetImageWidth,
           targetImageHeight, gOrData16, CompressionType.zipWithPrediction);
-      updateLayer(
-          document,
+
+      document.updateLayer(
           layer4,
           ExportChannel.alpha,
           0,
@@ -543,9 +529,9 @@ int sampleWritePsd() {
           gCheckerBoardData16,
           CompressionType.zipWithPrediction);
 
-      updateMergedImage(document, gMultiplyData16, gXorData16, gAndData16);
+      document.updateMergedImage(gMultiplyData16, gXorData16, gAndData16);
 
-      writeDocument(document, file);
+      document.write(file);
     }
 
     io.File(dstPath).writeAsBytesSync(file.bytes!);
@@ -556,31 +542,32 @@ int sampleWritePsd() {
     var file = File();
 
     // write an RGB PSD file, 32-bit
-    var document = createExportDocument(
+    var document = ExportDocument(
         targetImageWidth, targetImageHeight, 32, ExportColorMode.rgb);
     {
-      final layer1 = addLayer(document, 'MUL pattern');
-      updateLayer(document, layer1, ExportChannel.red, 0, 0, targetImageWidth,
+      final layer1 = document.addLayer(document, 'MUL pattern');
+      document.updateLayer(layer1!, ExportChannel.red, 0, 0, targetImageWidth,
           targetImageHeight, gMultiplyData32, CompressionType.raw);
-      updateLayer(document, layer1, ExportChannel.green, 0, 0, targetImageWidth,
+      document.updateLayer(layer1, ExportChannel.green, 0, 0, targetImageWidth,
           targetImageHeight, gMultiplyData32, CompressionType.rle);
-      updateLayer(document, layer1, ExportChannel.blue, 0, 0, targetImageWidth,
+      document.updateLayer(layer1, ExportChannel.blue, 0, 0, targetImageWidth,
           targetImageHeight, gMultiplyData32, CompressionType.zip);
 
-      final layer2 = addLayer(document, 'Mixed pattern with transparency');
-      updateLayer(document, layer2, ExportChannel.red, 0, 0, targetImageWidth,
+      final layer2 =
+          document.addLayer(document, 'Mixed pattern with transparency');
+      document.updateLayer(layer2!, ExportChannel.red, 0, 0, targetImageWidth,
           targetImageHeight, gMultiplyData32, CompressionType.rle);
-      updateLayer(document, layer2, ExportChannel.green, 0, 0, targetImageWidth,
+      document.updateLayer(layer2, ExportChannel.green, 0, 0, targetImageWidth,
           targetImageHeight, gXorData32, CompressionType.zip);
-      updateLayer(document, layer2, ExportChannel.blue, 0, 0, targetImageWidth,
+      document.updateLayer(layer2, ExportChannel.blue, 0, 0, targetImageWidth,
           targetImageHeight, gOrData32, CompressionType.zipWithPrediction);
-      updateLayer(document, layer2, ExportChannel.alpha, 0, 0, targetImageWidth,
+      document.updateLayer(layer2, ExportChannel.alpha, 0, 0, targetImageWidth,
           targetImageHeight, gCheckerBoardData32, CompressionType.raw);
 
-      updateMergedImage(
-          document, gMultiplyData32, gXorData32, gCheckerBoardData32);
+      document.updateMergedImage(
+          gMultiplyData32, gXorData32, gCheckerBoardData32);
 
-      writeDocument(document, file);
+      document.write(file);
     }
 
     io.File(dstPath).writeAsBytesSync(file.bytes!);

@@ -14,7 +14,6 @@ void main() {
   late LayerMaskSection? layerMaskSection;
   late Layer? layer;
   late ImageDataSection? imageData;
-  late bool isRgb;
   late Uint8List? image;
   late Uint8List? image8;
   late Uint8List? image16;
@@ -22,52 +21,24 @@ void main() {
 
   setUpAll(() {
     final srcPath = '${getSampleInputPath()}Sample.psd';
-    file = File();
     try {
-      file.setByteData(io.File(srcPath).readAsBytesSync());
+      file = File.fromByteData(io.File(srcPath).readAsBytesSync());
     } catch (e) {
       throw Exception('Cannot open file.');
     }
 
-    document = createDocument(file)!;
+    document = Document.fromFile(file);
     if (document.colorMode != ColorMode.rgb) {
       throw Exception('Document is not in RGB color mode.');
     }
 
-    layerMaskSection = parseLayerMaskSection(document, file);
+    layerMaskSection = document.parseLayerMaskSection(file);
     layer = layerMaskSection!.layers?[0];
-    imageData = parseImageDataSection(document, file);
+    imageData = document.parseImageDataSection(file);
 
     // Determine if image is RGB or RGBA
-    final imageCount = imageData?.imageCount;
     final hasTransparencyMask = layerMaskSection?.hasTransparencyMask;
-
-    if (imageCount == 3) {
-      isRgb = true;
-    } else if ((imageCount ?? 0) >= 4) {
-      isRgb = !(hasTransparencyMask ?? false);
-    } else {
-      isRgb = false;
-    }
-
-    // Create interleaved image
-    image = isRgb
-        ? interleaveRGB(
-            imageData?.images?[0]!.data,
-            imageData?.images?[1]!.data,
-            imageData?.images?[2]!.data,
-            0,
-            document.bitsPerChannel ?? 0,
-            document.width ?? 0,
-            document.height ?? 0)
-        : interleaveRGBA(
-            imageData?.images?[0]!.data,
-            imageData?.images?[1]!.data,
-            imageData?.images?[2]!.data,
-            imageData?.images?[3]!.data,
-            document.bitsPerChannel ?? 0,
-            document.width ?? 0,
-            document.height ?? 0);
+    image = imageData?.getInterleavedImage(hasTransparencyMask ?? false);
 
     image8 = document.bitsPerChannel == 8 ? image : null;
     image16 = document.bitsPerChannel == 16 ? image : null;
@@ -126,12 +97,12 @@ void main() {
         return;
       }
 
-      extractLayer(document, file, layer!);
+      layer!.extract(file);
 
-      final indexR = findChannel(layer!, ChannelType.r);
-      final indexG = findChannel(layer!, ChannelType.g);
-      final indexB = findChannel(layer!, ChannelType.b);
-      final indexA = findChannel(layer!, ChannelType.transparencyMask);
+      final indexR = layer!.findChannel(ChannelType.r)?.index;
+      final indexG = layer!.findChannel(ChannelType.g)?.index;
+      final indexB = layer!.findChannel(ChannelType.b)?.index;
+      final indexA = layer!.findChannel(ChannelType.transparencyMask)?.index;
 
       canvasData = List<Uint8List?>.filled(4, null);
       channelCount = 0;
@@ -174,10 +145,10 @@ void main() {
     });
 
     test('should have correct channel indices', () {
-      final indexR = findChannel(layer!, ChannelType.r);
-      final indexG = findChannel(layer!, ChannelType.g);
-      final indexB = findChannel(layer!, ChannelType.b);
-      final indexA = findChannel(layer!, ChannelType.transparencyMask);
+      final indexR = layer!.findChannel(ChannelType.r)?.index;
+      final indexG = layer!.findChannel(ChannelType.g)?.index;
+      final indexB = layer!.findChannel(ChannelType.b)?.index;
+      final indexA = layer!.findChannel(ChannelType.transparencyMask)?.index;
 
       expect(indexR, 1);
       expect(indexG, 2);

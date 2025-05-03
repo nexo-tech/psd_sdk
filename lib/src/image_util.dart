@@ -3,30 +3,33 @@ import 'dart:typed_data';
 import 'data_types.dart';
 
 /// Copies planar layer data to a canvas. Only the parts overlapping the canvas will be copied to it.
-bool copyLayerData(
-    Uint8List layerData,
-    Uint8List canvasData,
-    int bitsPerChannel,
-    int layerLeft,
-    int layerTop,
-    int layerRight,
-    int layerBottom,
-    int canvasWidth,
-    int canvasHeight) {
-  if (bitsPerChannel == 8) {
-    _copyLayerData<Uint8T>(layerData, canvasData, layerLeft, layerTop,
-        layerRight, layerBottom, canvasWidth, canvasHeight);
-    return true;
-  } else if (bitsPerChannel == 16) {
-    _copyLayerData<Uint16T>(layerData, canvasData, layerLeft, layerTop,
-        layerRight, layerBottom, canvasWidth, canvasHeight);
-    return true;
-  } else if (bitsPerChannel == 32) {
-    _copyLayerData<Float32T>(layerData, canvasData, layerLeft, layerTop,
-        layerRight, layerBottom, canvasWidth, canvasHeight);
-    return true;
-  } else {
-    return false;
+///
+class ImageUtil {
+  static bool copyLayerData(
+      Uint8List layerData,
+      Uint8List canvasData,
+      int bitsPerChannel,
+      int layerLeft,
+      int layerTop,
+      int layerRight,
+      int layerBottom,
+      int canvasWidth,
+      int canvasHeight) {
+    if (bitsPerChannel == 8) {
+      _copyLayerData<Uint8T>(layerData, canvasData, layerLeft, layerTop,
+          layerRight, layerBottom, canvasWidth, canvasHeight);
+      return true;
+    } else if (bitsPerChannel == 16) {
+      _copyLayerData<Uint16T>(layerData, canvasData, layerLeft, layerTop,
+          layerRight, layerBottom, canvasWidth, canvasHeight);
+      return true;
+    } else if (bitsPerChannel == 32) {
+      _copyLayerData<Float32T>(layerData, canvasData, layerLeft, layerTop,
+          layerRight, layerBottom, canvasWidth, canvasHeight);
+      return true;
+    } else {
+      return false;
+    }
   }
 }
 
