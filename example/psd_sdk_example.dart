@@ -8,7 +8,7 @@ final int CHANNEL_NOT_FOUND = -1;
 
 int findChannel(Layer layer, int channelType) {
   for (var i = 0; i < layer.channelCount; ++i) {
-    var channel = layer.channels[i];
+    var channel = layer.channels![i];
     if (channel.data != null && channel.type == channelType) {
       return i;
     }
@@ -25,32 +25,48 @@ String getSampleOutputPath() {
   return 'example/sample_output/';
 }
 
-Uint8List expandChannelToCanvas(
+Uint8List? expandChannelToCanvas(
     Document document, dynamic layer, Channel channel) {
   var canvasData = Uint8List.fromList(List.filled(
-      document.bitsPerChannel ~/ 8 * document.width * document.height, 0));
+      (document.bitsPerChannel ?? 0) ~/
+          8 *
+          (document.width ?? 0) *
+          (document.height ?? 0),
+      0));
   if (copyLayerData(
-    channel.data,
+    channel.data!,
     canvasData,
-    document.bitsPerChannel,
+    document.bitsPerChannel ?? 0,
     layer.left,
     layer.top,
     layer.right,
     layer.bottom,
-    document.width,
-    document.height,
+    document.width ?? 0,
+    document.height ?? 0,
   )) {
     return canvasData;
   }
   return null;
 }
 
-Uint8List expandMaskToCanvas(Document document, Mask mask) {
+Uint8List? expandMaskToCanvas(Document document, Mask mask) {
   var canvasData = Uint8List.fromList(List.filled(
-      document.bitsPerChannel ~/ 8 * document.width * document.height, 0));
+      (document.bitsPerChannel ?? 0) ~/
+          8 *
+          (document.width ?? 0) *
+          (document.height ?? 0),
+      0));
 
-  if (copyLayerData(mask.data, canvasData, document.bitsPerChannel, mask.left,
-      mask.top, mask.right, mask.bottom, document.width, document.height)) {
+  if (copyLayerData(
+      mask.data!,
+      canvasData,
+      document.bitsPerChannel ?? 0,
+      mask.left ?? 0,
+      mask.top ?? 0,
+      mask.right ?? 0,
+      mask.bottom ?? 0,
+      document.width ?? 0,
+      document.height ?? 0)) {
     return canvasData;
   }
 
@@ -93,12 +109,12 @@ int sampleReadPsd() {
   final layerMaskSection = parseLayerMaskSection(document, file);
 
   if (layerMaskSection != null) {
-    hasTransparencyMask = layerMaskSection.hasTransparencyMask;
+    hasTransparencyMask = layerMaskSection.hasTransparencyMask ?? false;
 
     // extract all layers one by one. this should be done in parallel for
     // maximum efficiency.
     for (var i = 0; i < layerMaskSection.layerCount; ++i) {
-      var layer = layerMaskSection.layers[i];
+      var layer = layerMaskSection.layers![i];
       extractLayer(document, file, layer);
 
       // check availability of R, G, B, and A channels.
@@ -115,24 +131,24 @@ int sampleReadPsd() {
       // positioned. therefore, we use the provided utility functions to
       // expand/shrink the channel data to the canvas size. of course, you can
       // work with the channel data directly if you need to.
-      var canvasData = List<Uint8List>(4);
+      var canvasData = List<Uint8List>.filled(4, Uint8List(0));
       var channelCount = 0;
       if ((indexR != CHANNEL_NOT_FOUND) &&
           (indexG != CHANNEL_NOT_FOUND) &&
           (indexB != CHANNEL_NOT_FOUND)) {
         // RGB channels were found.
         canvasData[0] =
-            expandChannelToCanvas(document, layer, layer.channels[indexR]);
+            expandChannelToCanvas(document, layer, layer.channels![indexR])!;
         canvasData[1] =
-            expandChannelToCanvas(document, layer, layer.channels[indexG]);
+            expandChannelToCanvas(document, layer, layer.channels![indexG])!;
         canvasData[2] =
-            expandChannelToCanvas(document, layer, layer.channels[indexB]);
+            expandChannelToCanvas(document, layer, layer.channels![indexB])!;
         channelCount = 3;
 
         if (indexA != CHANNEL_NOT_FOUND) {
           // A channel was also found.
           canvasData[3] =
-              expandChannelToCanvas(document, layer, layer.channels[indexA]);
+              expandChannelToCanvas(document, layer, layer.channels![indexA])!;
           channelCount = 4;
         }
       }
@@ -143,16 +159,22 @@ int sampleReadPsd() {
       // ignore: unused_local_variable
 
       final image = channelCount == 3
-          ? interleaveRGB(canvasData[0], canvasData[1], canvasData[2],
-              document.bitsPerChannel, 0, document.width, document.height)
+          ? interleaveRGB(
+              canvasData[0],
+              canvasData[1],
+              canvasData[2],
+              document.bitsPerChannel ?? 0,
+              0,
+              document.width ?? 0,
+              document.height ?? 0)
           : interleaveRGBA(
               canvasData[0],
               canvasData[1],
               canvasData[2],
               canvasData[3],
-              document.bitsPerChannel,
-              document.width,
-              document.height);
+              document.bitsPerChannel ?? 0,
+              document.width ?? 0,
+              document.height ?? 0);
 
       final image8 = document.bitsPerChannel == 8 ? image : null;
       // ignore: unused_local_variable
@@ -167,9 +189,9 @@ int sampleReadPsd() {
       String layerName;
       if (layer.utf16Name != null) {
         layerName =
-            String.fromCharCodes(layer.utf16Name.where((x) => x != 0x00));
+            String.fromCharCodes(layer.utf16Name!.where((x) => x != 0x00));
       } else {
-        layerName = layer.name;
+        layerName = layer.name ?? '';
       }
 
       // at this point, image8, image16 or image32 store either a 8-bit, 16-bit,
@@ -181,13 +203,13 @@ int sampleReadPsd() {
         if (document.bitsPerChannel == 8) {
           var filename = '${getSampleOutputPath()}' 'layer${layerName}.tga';
           tga_exporter.saveRGB(
-              filename, document.width, document.height, image8);
+              filename, document.width ?? 0, document.height ?? 0, image8!);
         }
       } else if (channelCount == 4) {
         if (document.bitsPerChannel == 8) {
           var filename = '${getSampleOutputPath()}' 'layer${layerName}.tga';
           tga_exporter.saveRGBA(
-              filename, document.width, document.height, image8);
+              filename, document.width ?? 0, document.height ?? 0, image8!);
         }
       }
 
@@ -197,49 +219,49 @@ int sampleReadPsd() {
       if (layer.layerMask != null) {
         // a layer mask exists, and data is available. work out the mask's
         // dimensions.
-        final width = (layer.layerMask.right - layer.layerMask.left);
-        final height = (layer.layerMask.bottom - layer.layerMask.top);
+        final width = (layer.layerMask!.right! - layer.layerMask!.left!);
+        final height = (layer.layerMask!.bottom! - layer.layerMask!.top!);
 
         // similar to layer data, the mask data can be smaller or bigger than
         // the canvas. the mask data is always single-channel (monochrome), and
         // has a width and height as calculated above.
-        var maskData = layer.layerMask.data;
+        var maskData = layer.layerMask!.data;
         {
           var filename =
               '${getSampleOutputPath()}' 'layer${layerName}' '_usermask.tga';
-          tga_exporter.saveMonochrome(filename, width, height, maskData);
+          tga_exporter.saveMonochrome(filename, width, height, maskData!);
         }
 
         // use ExpandMaskToCanvas create an image that is the same size as the
         // canvas.
-        var maskCanvasData = expandMaskToCanvas(document, layer.layerMask);
+        var maskCanvasData = expandMaskToCanvas(document, layer.layerMask!);
         {
           var filename =
               '${getSampleOutputPath()}canvas${layerName}_usermask.tga';
-          tga_exporter.saveMonochrome(
-              filename, document.width, document.height, maskCanvasData);
+          tga_exporter.saveMonochrome(filename, document.width ?? 0,
+              document.height ?? 0, maskCanvasData!);
         }
       }
 
       if (layer.vectorMask != null) {
         // accessing the vector mask works exactly like accessing the layer
         // mask.
-        final width = (layer.vectorMask.right - layer.vectorMask.left);
-        final height = (layer.vectorMask.bottom - layer.vectorMask.top);
+        final width = (layer.vectorMask!.right! - layer.vectorMask!.left!);
+        final height = (layer.vectorMask!.bottom! - layer.vectorMask!.top!);
 
-        var maskData = layer.vectorMask.data;
+        var maskData = layer.vectorMask!.data;
         {
           var filename =
               '${getSampleOutputPath()}' 'layer${layerName}' '_vectormask.tga';
-          tga_exporter.saveMonochrome(filename, width, height, maskData);
+          tga_exporter.saveMonochrome(filename, width, height, maskData!);
         }
 
-        var maskCanvasData = expandMaskToCanvas(document, layer.vectorMask);
+        var maskCanvasData = expandMaskToCanvas(document, layer.vectorMask!);
         {
           var filename =
               '${getSampleOutputPath()}' 'canvas${layerName}' '_vectormask.tga';
-          tga_exporter.saveMonochrome(
-              filename, document.width, document.height, maskCanvasData);
+          tga_exporter.saveMonochrome(filename, document.width ?? 0,
+              document.height ?? 0, maskCanvasData!);
         }
       }
     }
@@ -281,21 +303,21 @@ int sampleReadPsd() {
 
         final image = isRgb
             ? interleaveRGB(
-                imageData.images[0].data,
-                imageData.images[1].data,
-                imageData.images[2].data,
+                imageData!.images![0].data!,
+                imageData!.images![1].data!,
+                imageData!.images![2].data!,
                 0,
-                document.bitsPerChannel,
-                document.width,
-                document.height)
+                document.bitsPerChannel ?? 0,
+                document.width ?? 0,
+                document.height ?? 0)
             : interleaveRGBA(
-                imageData.images[0].data,
-                imageData.images[1].data,
-                imageData.images[2].data,
-                imageData.images[3].data,
-                document.bitsPerChannel,
-                document.width,
-                document.height);
+                imageData.images![0].data!,
+                imageData.images![1].data!,
+                imageData.images![2].data!,
+                imageData.images![3].data!,
+                document.bitsPerChannel ?? 0,
+                document.width ?? 0,
+                document.height ?? 0);
 
         final image8 = document.bitsPerChannel == 8 ? image : null;
         // ignore: unused_local_variable
@@ -307,33 +329,34 @@ int sampleReadPsd() {
           var filename = '${getSampleOutputPath()}' 'merged.tga';
           if (isRgb) {
             tga_exporter.saveRGB(
-                filename, document.width, document.height, image8);
+                filename, document.width ?? 0, document.height ?? 0, image8!);
           } else {
             tga_exporter.saveRGBA(
-                filename, document.width, document.height, image8);
+                filename, document.width ?? 0, document.height ?? 0, image8!);
           }
         }
 
         // extract image resources in order to acquire the alpha channel names.
         var imageResources = parseImageResourcesSection(document, file);
-        if (imageResources != null) {
-          // store all the extra alpha channels. in case we have a transparency
-          // mask, it will always be the first of the extra channels. alpha
-          // channel names can be accessed using
-          // imageResources.alphaChannels[index]. loop through all alpha
-          // channels, and skip all channels that were already merged (either RGB
-          // or RGBA).
-          final skipImageCount = isRgb ? 3 : 4;
-          for (var i = 0; i < imageCount - skipImageCount; ++i) {
-            var channel = imageResources.alphaChannels[i];
+        // store all the extra alpha channels. in case we have a transparency
+        // mask, it will always be the first of the extra channels. alpha
+        // channel names can be accessed using
+        // imageResources.alphaChannels[index]. loop through all alpha
+        // channels, and skip all channels that were already merged (either RGB
+        // or RGBA).
+        final skipImageCount = isRgb ? 3 : 4;
+        for (var i = 0; i < imageCount - skipImageCount; ++i) {
+          var channel = imageResources.alphaChannels![i];
 
-            if (document.bitsPerChannel == 8) {
-              var filename = '${getSampleOutputPath()}'
-                  '.extra_channel_'
-                  '${channel.asciiName}.tga';
-              tga_exporter.saveMonochrome(filename, document.width,
-                  document.height, imageData.images[i + skipImageCount].data);
-            }
+          if (document.bitsPerChannel == 8) {
+            var filename = '${getSampleOutputPath()}'
+                '.extra_channel_'
+                '${channel.asciiName}.tga';
+            tga_exporter.saveMonochrome(
+                filename,
+                document.width ?? 0,
+                document.height ?? 0,
+                imageData.images![i + skipImageCount].data!);
           }
         }
       }
@@ -487,7 +510,7 @@ int sampleWritePsd() {
       writeDocument(document, file);
     }
 
-    io.File(dstPath).writeAsBytesSync(file.bytes);
+    io.File(dstPath).writeAsBytesSync(file.bytes!);
   }
   {
     final dstPath = '${getSampleOutputPath()}SampleWrite_16.psd';
@@ -530,7 +553,7 @@ int sampleWritePsd() {
       writeDocument(document, file);
     }
 
-    io.File(dstPath).writeAsBytesSync(file.bytes);
+    io.File(dstPath).writeAsBytesSync(file.bytes!);
   }
   {
     final dstPath = '${getSampleOutputPath()}SampleWrite_32.psd';
@@ -565,7 +588,7 @@ int sampleWritePsd() {
       writeDocument(document, file);
     }
 
-    io.File(dstPath).writeAsBytesSync(file.bytes);
+    io.File(dstPath).writeAsBytesSync(file.bytes!);
   }
 
   return 0;

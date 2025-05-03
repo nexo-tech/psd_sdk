@@ -31,8 +31,8 @@ int main() {
   }
 
   final layerMaskSection = parseLayerMaskSection(document, file);
-  var hasTransparencyMask = layerMaskSection.hasTransparencyMask;
-  var layer = layerMaskSection.layers[0];
+  var hasTransparencyMask = layerMaskSection?.hasTransparencyMask;
+  var layer = layerMaskSection?.layers?[0];
 
   test('Document ', () {
     expect(document.bitsPerChannel, 8);
@@ -40,11 +40,11 @@ int main() {
     expect(document.height, 1024);
   });
   test('layer ', () {
-    expect(layer.name, 'UpperLeft');
-    expect(layer.channelCount, 4);
-    expect(layer.right, 512);
-    expect(layer.layerMask, null);
-    expect(layer.opacity, 255);
+    expect(layer?.name, 'UpperLeft');
+    expect(layer?.channelCount, 4);
+    expect(layer?.right, 512);
+    expect(layer?.layerMask, null);
+    expect(layer?.opacity, 255);
   });
 
   // extract all layers one by one. this should be done in parallel for
@@ -54,7 +54,7 @@ int main() {
   // interleave the planar image data into one RGB or RGBA image.
   // store the rest of the (alpha) channels and the transparency mask
   // separately.
-  final imageCount = imageData.imageCount;
+  final imageCount = imageData?.imageCount;
 
   // note that an image can have more than 3 channels, but still no
   // transparency mask in case all extra channels are actual alpha channels.
@@ -65,10 +65,10 @@ int main() {
     // the size of the canvas/document, so we can interleave them using
     // imageUtil::InterleaveRGB directly.
     isRgb = true;
-  } else if (imageCount >= 4) {
+  } else if ((imageCount ?? 0) >= 4) {
     // check if we really have a transparency mask that belongs to the
     // "main" merged image.
-    if (hasTransparencyMask) {
+    if (hasTransparencyMask ?? false) {
       // we have 4 or more images/channels, and a transparency mask.
       // this means that images 0-3 are RGBA, respectively.
       isRgb = false;
@@ -82,21 +82,21 @@ int main() {
 
   final image = isRgb
       ? interleaveRGB(
-          imageData.images[0].data,
-          imageData.images[1].data,
-          imageData.images[2].data,
+          imageData?.images?[0].data ?? Uint8List(0),
+          imageData?.images?[1].data ?? Uint8List(0),
+          imageData?.images?[2].data ?? Uint8List(0),
           0,
-          document.bitsPerChannel,
-          document.width,
-          document.height)
+          document.bitsPerChannel ?? 0,
+          document.width ?? 0,
+          document.height ?? 0)
       : interleaveRGBA(
-          imageData.images[0].data,
-          imageData.images[1].data,
-          imageData.images[2].data,
-          imageData.images[3].data,
-          document.bitsPerChannel,
-          document.width,
-          document.height);
+          imageData?.images?[0].data ?? Uint8List(0),
+          imageData?.images?[1].data ?? Uint8List(0),
+          imageData?.images?[2].data ?? Uint8List(0),
+          imageData?.images?[3].data ?? Uint8List(0),
+          document.bitsPerChannel ?? 0,
+          document.width ?? 0,
+          document.height ?? 0);
 
   final image8 = document.bitsPerChannel == 8 ? image : null;
   final image16 = document.bitsPerChannel == 16 ? image : null;
@@ -109,7 +109,7 @@ int main() {
   });
 
   test('image section image8', () {
-    expect(image8[0], 102);
+    expect(image8![0], 102);
     expect(image8[1], 43);
     expect(image8[2], 14);
 
@@ -126,7 +126,7 @@ int main() {
   });
 
   group('Canvas data group', () {
-    testCanvasData(document, file, layer);
+    testCanvasData(document, file, layer!);
   });
   return 0;
 }
@@ -148,24 +148,24 @@ void testCanvasData(Document document, File file, Layer layer) {
   // positioned. therefore, we use the provided utility functions to
   // expand/shrink the channel data to the canvas size. of course, you can
   // work with the channel data directly if you need to.
-  var canvasData = List<Uint8List>(4);
+  var canvasData = List<Uint8List?>.filled(4, null);
   var channelCount = 0;
   if ((indexR != CHANNEL_NOT_FOUND) &&
       (indexG != CHANNEL_NOT_FOUND) &&
       (indexB != CHANNEL_NOT_FOUND)) {
     // RGB channels were found.
     canvasData[0] =
-        expandChannelToCanvas(document, layer, layer.channels[indexR]);
+        expandChannelToCanvas(document, layer, layer.channels![indexR]);
     canvasData[1] =
-        expandChannelToCanvas(document, layer, layer.channels[indexG]);
+        expandChannelToCanvas(document, layer, layer.channels![indexG]);
     canvasData[2] =
-        expandChannelToCanvas(document, layer, layer.channels[indexB]);
+        expandChannelToCanvas(document, layer, layer.channels![indexB]);
     channelCount = 3;
 
     if (indexA != CHANNEL_NOT_FOUND) {
       // A channel was also found.
       canvasData[3] =
-          expandChannelToCanvas(document, layer, layer.channels[indexA]);
+          expandChannelToCanvas(document, layer, layer.channels![indexA]);
       channelCount = 4;
     }
   }
@@ -174,16 +174,22 @@ void testCanvasData(Document document, File file, Layer layer) {
   // RGBA image, depending on what channels we found, and what color mode
   // the document is stored in.
   final image8 = channelCount == 3
-      ? interleaveRGB(canvasData[0], canvasData[1], canvasData[2],
-          document.bitsPerChannel, 0, document.width, document.height)
+      ? interleaveRGB(
+          canvasData[0]!,
+          canvasData[1]!,
+          canvasData[2]!,
+          document.bitsPerChannel ?? 0,
+          0,
+          document.width ?? 0,
+          document.height ?? 0)
       : interleaveRGBA(
-          canvasData[0],
-          canvasData[1],
-          canvasData[2],
-          canvasData[3],
-          document.bitsPerChannel,
-          document.width,
-          document.height);
+          canvasData[0]!,
+          canvasData[1]!,
+          canvasData[2]!,
+          canvasData[3]!,
+          document.bitsPerChannel ?? 0,
+          document.width ?? 0,
+          document.height ?? 0);
 
   test('Channel indices', () {
     expect(indexR, 1);
@@ -192,5 +198,5 @@ void testCanvasData(Document document, File file, Layer layer) {
     expect(indexA, 0);
   });
 
-  canvasDataTest(canvasData, image8);
+  canvasDataTest(canvasData, image8!);
 }

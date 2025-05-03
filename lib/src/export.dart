@@ -1,17 +1,13 @@
 import 'dart:typed_data';
 
-import 'package:archive/archive.dart';
+import 'package:archive/archive.dart' as archive;
 import 'package:psd_sdk/psd_sdk.dart';
 import 'package:psd_sdk/src/export_layer.dart';
 import 'package:psd_sdk/src/sync_file_writer.dart';
 
 import 'bit_util.dart';
-import 'compression_type.dart';
 import 'data_types.dart';
 import 'decompress_rle.dart';
-import 'export_channel.dart';
-import 'export_color_mode.dart';
-import 'export_document.dart';
 import 'export_metadata_attribute.dart';
 import 'image_resource_type.dart';
 import 'key.dart';
@@ -44,7 +40,7 @@ ExportDocument createExportDocument(
 /// by a call to UpdateMetaData.
 int addMetaData(ExportDocument document, String name, String value) {
   final index = document.attributeCount;
-  document.attributes.add(ExportMetaDataAttribute());
+  document.attributes?.add(ExportMetaDataAttribute());
   _updateMetaData(document, index, name, value);
 
   return index;
@@ -53,9 +49,12 @@ int addMetaData(ExportDocument document, String name, String value) {
 /// Adds a layer to a document. The returned index can be used to update layer data by a call to updateLayer.
 int addLayer(ExportDocument document, String name) {
   final index = document.layerCount;
-  document.layers.add(ExportLayer());
+  document.layers?.add(ExportLayer());
 
-  var layer = document.layers[index];
+  var layer = document.layers?[index];
+  if (layer == null) {
+    return -1;
+  }
   layer.name = _createString(name);
   return index;
 }
@@ -684,7 +683,10 @@ void _updateLayerImpl<T extends NumDataType>(
         'Wrong channel for this color mode.');
   }
 
-  final layer = document.layers[layerIndex];
+  final layer = document.layers?[layerIndex];
+  if (layer == null) {
+    return;
+  }
   final channelIndex = _getChannelIndex(channel);
 
   // prepare new data
@@ -752,7 +754,8 @@ void _createDataZipPrediction<T extends NumDataType>(ExportLayer layer,
     allocation[i] = nativeToBigEndian<T>(allocation[i]);
   }
 
-  Uint8List zipData = ZLibEncoder().encodeBytes(allocation as Uint8List);
+  Uint8List zipData =
+      archive.ZLibEncoder().encodeBytes(allocation as Uint8List);
 
   layer.channelData[channelIndex] = zipData;
   layer.channelSize[channelIndex] = zipData.length;
@@ -796,7 +799,7 @@ void _createDataZipPredictionF32(ExportLayer layer, int channelIndex,
     }
   }
 
-  Uint8List zipData = ZLibEncoder().encodeBytes(deltaData);
+  Uint8List zipData = archive.ZLibEncoder().encodeBytes(deltaData);
 
   layer.channelData[channelIndex] = zipData;
   layer.channelSize[channelIndex] = zipData.length;
@@ -812,7 +815,7 @@ void _createDataZip<T extends NumDataType>(ExportLayer layer, int channelIndex,
     bigEndianData[i] = nativeToBigEndian<T>((planarData as List)[i]);
   }
 
-  Uint8List zipData = ZLibEncoder()
+  Uint8List zipData = archive.ZLibEncoder()
       .encodeBytes((bigEndianData as TypedData).buffer.asUint8List());
 
   layer.channelData[channelIndex] = zipData;
@@ -926,8 +929,8 @@ int _getMetaDataResourceSize(ExportDocument document) {
   var metaDataSize = _XMP_HEADER.length;
   for (var i = 0; i < document.attributeCount; ++i) {
     metaDataSize += ('<xmp:>').length;
-    metaDataSize += (document.attributes?[i]?.name?.length ?? 0) * 2;
-    metaDataSize += (document.attributes?[i]?.value?.length ?? 0);
+    metaDataSize += (document.attributes?[i].name?.length ?? 0) * 2;
+    metaDataSize += (document.attributes?[i].value?.length ?? 0);
     metaDataSize += ('</xmp:>\n').length;
   }
   metaDataSize += _XMP_FOOTER.length;
@@ -1018,7 +1021,7 @@ int _getDisplayInfoResourceSize(ExportDocument document) {
 int _getChannelNamesResourceSize(ExportDocument document) {
   var size = 0;
   for (var i = 0; i < document.alphaChannelCount; ++i) {
-    size += (document.alphaChannels?[i]?.asciiName?.length ?? 0) + 1;
+    size += (document.alphaChannels[i]?.asciiName?.length ?? 0) + 1;
   }
 
   return (size);

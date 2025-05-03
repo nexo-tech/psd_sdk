@@ -26,9 +26,9 @@ ImageResourcesSection parseImageResourcesSection(Document document, File file) {
   imageResources.thumbnail = null;
 
   final reader = SyncFileReader(file);
-  reader.setPosition(document.imageResourcesSection.offset);
+  reader.setPosition(document.imageResourcesSection.offset ?? 0);
 
-  var leftToRead = document.imageResourcesSection.length;
+  var leftToRead = document.imageResourcesSection.length ?? 0;
   while (leftToRead > 0) {
     final signature = reader.readUint32();
     if ((signature != keyValue('8BIM')) && (signature != keyValue('psdM'))) {
@@ -75,16 +75,16 @@ ImageResourcesSection parseImageResourcesSection(Document document, File file) {
           // (imageResource::ALPHA_CHANNEL_ASCII_NAMES stores the channel names)
           if (imageResources.alphaChannels == null) {
             // note that this assumes RGB mode
-            final channelCount = document.channelCount - 3;
-            imageResources.alphaChannels = List(channelCount);
+            final channelCount = document.channelCount ?? 0 - 3;
+            imageResources.alphaChannels =
+                List<AlphaChannel>.filled(channelCount, AlphaChannel());
           }
 
           // ignore: unused_local_variable
           final version = reader.readUint32();
 
           for (var i = 0; i < imageResources.alphaChannelCount; ++i) {
-            imageResources.alphaChannels[0] = AlphaChannel();
-            var channel = imageResources.alphaChannels[0];
+            var channel = imageResources.alphaChannels![0];
             channel.colorSpace = reader.readUint16();
             channel.color[0] = reader.readUint16();
             channel.color[1] = reader.readUint16();
@@ -178,7 +178,9 @@ ImageResourcesSection parseImageResourcesSection(Document document, File file) {
           assert(imageResources.xmpMetadata == null,
               'File contains more than one XMP metadata resource.');
           final xmpMetadata = reader.readBytes(resourceSize);
-          imageResources.xmpMetadata = String.fromCharCodes(xmpMetadata);
+          if (xmpMetadata != null) {
+            imageResources.xmpMetadata = String.fromCharCodes(xmpMetadata);
+          }
         }
         break;
 
@@ -208,28 +210,28 @@ ImageResourcesSection parseImageResourcesSection(Document document, File file) {
           // (imageResource::DISPLAY_INFO stores the channel color data)
           if (imageResources.alphaChannels == null) {
             // note that this assumes RGB mode
-            final channelCount = document.channelCount - 3;
-            imageResources.alphaChannels = List(channelCount);
-            for (var x = 0; x < imageResources.alphaChannelCount; x++) {
-              imageResources.alphaChannels[x] = AlphaChannel();
-            }
+            final channelCount = document.channelCount ?? 0 - 3;
+            imageResources.alphaChannels =
+                List<AlphaChannel>.filled(channelCount, AlphaChannel());
           }
 
           // the names of the alpha channels are stored as a series of Pascal strings
           var channel = 0;
           var remaining = resourceSize;
           while (remaining > 0) {
-            String channelName;
+            String? channelName;
             final channelNameLength = reader.readByte();
             if (channelNameLength > 0) {
               var channelNameUint8List = reader.readBytes(channelNameLength);
-              channelName = String.fromCharCodes(channelNameUint8List);
+              if (channelNameUint8List != null) {
+                channelName = String.fromCharCodes(channelNameUint8List);
+              }
             }
 
             remaining -= 1 + channelNameLength;
 
             if (channel < imageResources.alphaChannelCount) {
-              imageResources.alphaChannels[channel].asciiName = channelName;
+              imageResources.alphaChannels![channel].asciiName = channelName;
               ++channel;
             }
           }

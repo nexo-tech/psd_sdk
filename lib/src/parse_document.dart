@@ -38,9 +38,10 @@ Document? createDocument(File file) {
   {
     final zeroes = reader.readBytes(6);
 
-    if (!zeroes
-        .map((e) => e == 0)
-        .reduce((value, element) => value && element)) {
+    if (zeroes != null &&
+        zeroes
+            .map((e) => e == 0)
+            .reduce((value, element) => value && element)) {
       psdError([
         'PsdExtract',
         'File seems to be corrupt, reserved bytes are not zero.'

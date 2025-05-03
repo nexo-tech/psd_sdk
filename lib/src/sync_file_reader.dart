@@ -51,20 +51,20 @@ class SyncFileReader {
   }
 
   int readInt16([Endian endian = Endian.big]) {
-    final value = _file.byteData.getInt16(_position);
+    final value = _file.byteData?.getInt16(_position, endian);
     _position += _int16Size;
-    return value;
+    return value ?? 0;
   }
 
   int readInt32([Endian endian = Endian.big]) {
-    final value = _file.byteData.getInt32(_position);
+    final value = _file.byteData?.getInt32(_position, endian);
     _position += _int32Size;
-    return value;
+    return value ?? 0;
   }
 
-  double readFloat64() {
-    final value = _file.byteData.getFloat64(_position);
+  double readFloat64([Endian endian = Endian.big]) {
+    final value = _file.byteData?.getFloat64(_position, endian);
     _position += _float64Size;
-    return value;
+    return value ?? 0;
   }
 }

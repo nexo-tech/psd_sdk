@@ -1,6 +1,6 @@
 import 'dart:typed_data';
 
-import 'package:archive/archive.dart';
+import 'package:archive/archive.dart' as archive;
 
 import 'channel.dart';
 import 'key.dart';
@@ -24,7 +24,7 @@ import 'sync_file_reader.dart';
 /// by a call to ExtractLayer for each layer.
 /// It is valid to parse different sections of a document (e.g. using parseImageResourcesSection, parseImageDataSection,
 /// or parseLayerMaskSection) in parallel from different threads.
-LayerMaskSection parseLayerMaskSection(Document document, File file) {
+LayerMaskSection? parseLayerMaskSection(Document document, File file) {
   // if there are no layers or masks, this section is just 4 bytes: the length field, which is set to zero.
   final section = document.layerMaskInfoSection;
   if (section.length == 0) {
@@ -33,21 +33,20 @@ LayerMaskSection parseLayerMaskSection(Document document, File file) {
   }
 
   final reader = SyncFileReader(file);
-  reader.setPosition(section.offset);
+  reader.setPosition(section.offset ?? 0);
 
   final layerInfoSectionLength = reader.readUint32();
-  final layerMaskSection = _parseLayer(
-      document, reader, section.offset, section.length, layerInfoSectionLength);
+  final layerMaskSection = _parseLayer(document, reader, section.offset ?? 0,
+      section.length ?? 0, layerInfoSectionLength);
 
   // build the layer hierarchy
-  if (layerMaskSection != null && layerMaskSection.layers != null) {
-    var layerStack = List<Layer>(256);
-    layerStack[0] = null;
+  if (layerMaskSection.layers != null) {
+    var layerStack = List<Layer?>.filled(256, null);
     var stackIndex = 0;
 
     for (var i = 0; i < layerMaskSection.layerCount; ++i) {
       // note that it is much easier to build the hierarchy by traversing the layers backwards
-      var layer = layerMaskSection.layers[layerMaskSection.layerCount - i - 1];
+      var layer = layerMaskSection.layers![layerMaskSection.layerCount - i - 1];
 
       assert(
           stackIndex >= 0 && stackIndex < 256, 'Stack index is out of bounds.');
@@ -92,12 +91,11 @@ LayerMaskSection _parseLayer(Document document, SyncFileReader reader,
       layerCount = -layerCount;
     }
 
-    layerMaskSection.layers = List(layerCount);
+    layerMaskSection.layers = List<Layer>.filled(layerCount, Layer());
 
     // read layer record for each layer
     for (var i = 0; i < layerMaskSection.layerCount; ++i) {
-      layerMaskSection.layers[i] = Layer();
-      final layer = layerMaskSection.layers[i];
+      final layer = layerMaskSection.layers![i];
 
       layer.parent = null;
       layer.utf16Name = null;
@@ -113,12 +111,11 @@ LayerMaskSection _parseLayer(Document document, SyncFileReader reader,
       // number of channels in the layer.
       // this includes channels for transparency, layer, and vector masks, if any.
       final channelCount = reader.readUint16();
-      layer.channels = List(channelCount);
+      layer.channels = List<Channel>.filled(channelCount, Channel());
 
       // parse each channel
       for (var j = 0; j < channelCount; ++j) {
-        layer.channels[j] = Channel();
-        final channel = layer.channels[j];
+        final channel = layer.channels![j];
         channel.fileOffset = 0;
         channel.data = null;
         channel.type = reader.readInt16();
@@ -226,17 +223,17 @@ LayerMaskSection _parseLayer(Document document, SyncFileReader reader,
           if (isVectorMask) {
             assert(layer.vectorMask == null, 'A vector mask already exists.');
             layer.vectorMask = VectorMask();
-            layer.vectorMask.data = null;
-            layer.vectorMask.fileOffset = 0;
-            _applyMaskData(maskData[mask], vectorFeather.value,
-                vectorDensity.value, layer.vectorMask);
+            layer.vectorMask?.data = null;
+            layer.vectorMask?.fileOffset = 0;
+            _applyMaskData<VectorMask>(maskData[mask], vectorFeather.value ?? 0,
+                vectorDensity.value ?? 0, layer.vectorMask!);
           } else {
             assert(layer.layerMask == null, 'A layer mask already exists.');
             layer.layerMask = LayerMask();
-            layer.layerMask.data = null;
-            layer.layerMask.fileOffset = 0;
-            _applyMaskData(maskData[mask], layerFeather.value,
-                layerDensity.value, layer.layerMask);
+            layer.layerMask?.data = null;
+            layer.layerMask?.fileOffset = 0;
+            _applyMaskData<LayerMask>(maskData[mask], layerFeather.value ?? 0,
+                layerDensity.value ?? 0, layer.layerMask!);
           }
         }
       }
@@ -249,8 +246,11 @@ LayerMaskSection _parseLayer(Document document, SyncFileReader reader,
       final nameLength = reader.readByte();
       final paddedNameLength = roundUpToMultiple(nameLength + 1, 4);
 
-      layer.name = String.fromCharCodes(
-          reader.readBytes(paddedNameLength - 1).where((x) => x != 0x00));
+      layer.name = String.fromCharCodes(reader
+              .readBytes(paddedNameLength - 1)
+              ?.where((x) => x != 0x00)
+              .toList() ??
+          []);
 
       // read Additional Layer Information that exists since Photoshop 4.0.
       // getting the size of this data is a bit awkward, because it's not stored explicitly somewhere. furthermore,
@@ -293,9 +293,9 @@ LayerMaskSection _parseLayer(Document document, SyncFileReader reader,
           layer.utf16Name = Uint16List(characterCountWithoutNull + 1);
 
           for (var c = 0; c < characterCountWithoutNull; ++c) {
-            layer.utf16Name[c] = reader.readUint16();
+            layer.utf16Name?[c] = reader.readUint16();
           }
-          layer.utf16Name[characterCountWithoutNull] = 0;
+          layer.utf16Name?[characterCountWithoutNull] = 0;
 
           // skip possible padding bytes
           reader
@@ -311,12 +311,12 @@ LayerMaskSection _parseLayer(Document document, SyncFileReader reader,
     // walk through the layers and channels, but don't extract their data just yet. only save the file offset for extracting the
     // data later.
     for (var i = 0; i < layerMaskSection.layerCount; ++i) {
-      final layer = layerMaskSection.layers[i];
+      final layer = layerMaskSection.layers![i];
       final channelCount = layer.channelCount;
       for (var j = 0; j < channelCount; ++j) {
-        var channel = layer.channels[j];
+        var channel = layer.channels![j];
         channel.fileOffset = reader.getPosition();
-        reader.skip(channel.size);
+        reader.skip(channel.size ?? 0);
       }
     }
   }
@@ -401,12 +401,12 @@ LayerMaskSection _parseLayer(Document document, SyncFileReader reader,
 }
 
 class _MaskData {
-  int top;
-  int left;
-  int bottom;
-  int right;
-  int defaultColor;
-  bool isVectorMask;
+  int top = 0;
+  int left = 0;
+  int bottom = 0;
+  int right = 0;
+  int defaultColor = 0;
+  bool isVectorMask = false;
 }
 
 int _readMaskRectangle(SyncFileReader reader, _MaskData maskData) {
@@ -420,7 +420,7 @@ int _readMaskRectangle(SyncFileReader reader, _MaskData maskData) {
 
 class _Ref<T> {
   _Ref([this.value]);
-  T value;
+  T? value;
   void set(T val) {
     value = val;
   }
@@ -493,18 +493,21 @@ Uint8List _endianConvert<T extends NumDataType>(Uint8List src, width, height) {
   return copied;
 }
 
-Uint8List _readChannelDataRaw<T extends NumDataType>(
+Uint8List? _readChannelDataRaw<T extends NumDataType>(
     SyncFileReader reader, int width, int height) {
   final size = width * height;
   if (size > 0) {
     var planarData = reader.readBytes(size * sizeof<T>());
+    if (planarData == null) {
+      return null;
+    }
     return _endianConvert<T>(planarData, width, height);
   }
 
   return null;
 }
 
-Uint8List _readChannelDataRLE<T extends NumDataType>(
+Uint8List? _readChannelDataRLE<T extends NumDataType>(
     SyncFileReader reader, int width, int height) {
   // the RLE-compressed data is preceded by a 2-byte data count for each scan line
   final size = width * height;
@@ -520,7 +523,7 @@ Uint8List _readChannelDataRLE<T extends NumDataType>(
 
     // decompress RLE
     var rleData = reader.readBytes(rleDataSize);
-    {
+    if (rleData != null) {
       decompressRle(rleData, rleDataSize, planarData, planarData.length);
     }
 
@@ -532,7 +535,7 @@ Uint8List _readChannelDataRLE<T extends NumDataType>(
   return null;
 }
 
-Uint8List _readChannelDataZip<T extends NumDataType>(
+Uint8List? _readChannelDataZip<T extends NumDataType>(
     SyncFileReader reader, int width, int height, int channelSize) {
   if (channelSize > 0) {
     final size = width * height;
@@ -540,9 +543,12 @@ Uint8List _readChannelDataZip<T extends NumDataType>(
     var zipData = reader.readBytes(channelSize);
 
     // the zipped data stream has a zlib-header
-    var planarData = Uint8List.fromList(ZLibDecoder().decodeBytes(zipData));
+    var planarData = zipData != null
+        ? Uint8List.fromList(archive.ZLibDecoder().decodeBytes(zipData))
+        : null;
     if (planarData == null || planarData.length != size * sizeof<T>()) {
       psdError(['PsdExtract', 'Error while unzipping channel data.']);
+      return null;
     }
 
     _endianConvert<T>(planarData, width, height);
@@ -553,7 +559,7 @@ Uint8List _readChannelDataZip<T extends NumDataType>(
   return null;
 }
 
-Uint8List _readChannelDataZipPrediction<T extends NumDataType>(
+Uint8List? _readChannelDataZipPrediction<T extends NumDataType>(
     SyncFileReader reader, int width, int height, int channelSize) {
   if (channelSize > 0) {
     final size = width * height;
@@ -561,12 +567,15 @@ Uint8List _readChannelDataZipPrediction<T extends NumDataType>(
     var zipData = reader.readBytes(channelSize);
 
     // the zipped data stream has a zlib-header
-    var planarData = Uint8List.fromList(ZLibDecoder().decodeBytes(zipData));
+    var planarData = zipData == null
+        ? null
+        : Uint8List.fromList(archive.ZLibDecoder().decodeBytes(zipData));
     if (planarData == null || planarData.length != size * sizeof<T>()) {
       // final status = tinfl_decompress_mem_to_mem(planarData, size * sizeof<T>(),
       //     zipData, channelSize, TINFL_FLAG_PARSE_ZLIB_HEADER);
       // if (status == TINFL_DECOMPRESS_MEM_TO_MEM_FAILED) {
-      psdError(['PsdExtract', 'Error while unzipping channel data.']);
+      // psdError(['PsdExtract', 'Error while unzipping channel data.']);
+      return null;
     }
 
     // the data generated by applying the prediction data is already in little-endian format, so it doesn't have to be
@@ -591,8 +600,11 @@ void extractLayer(Document document, File file, Layer layer) {
 
   final channelCount = layer.channelCount;
   for (var i = 0; i < channelCount; ++i) {
-    var channel = layer.channels[i];
-    reader.setPosition(channel.fileOffset);
+    var channel = layer.channels?[i];
+    if (channel == null) {
+      continue;
+    }
+    reader.setPosition(channel.fileOffset ?? 0);
 
     var width = _Ref(0);
     var height = _Ref(0);
@@ -603,57 +615,59 @@ void extractLayer(Document document, File file, Layer layer) {
     final compressionType = reader.readUint16();
     if (compressionType == CompressionType.RAW) {
       if (document.bitsPerChannel == 8) {
-        channel.data =
-            _readChannelDataRaw<Uint8T>(reader, width.value, height.value);
+        channel.data = _readChannelDataRaw<Uint8T>(
+            reader, width.value ?? 0, height.value ?? 0);
       } else if (document.bitsPerChannel == 16) {
-        channel.data =
-            _readChannelDataRaw<Uint16T>(reader, width.value, height.value);
+        channel.data = _readChannelDataRaw<Uint16T>(
+            reader, width.value ?? 0, height.value ?? 0);
       } else if (document.bitsPerChannel == 32) {
-        channel.data =
-            _readChannelDataRaw<Float32T>(reader, width.value, height.value);
+        channel.data = _readChannelDataRaw<Float32T>(
+            reader, width.value ?? 0, height.value ?? 0);
       }
     } else if (compressionType == CompressionType.RLE) {
       if (document.bitsPerChannel == 8) {
-        channel.data =
-            _readChannelDataRLE<Uint8T>(reader, width.value, height.value);
+        channel.data = _readChannelDataRLE<Uint8T>(
+            reader, width.value ?? 0, height.value ?? 0);
       } else if (document.bitsPerChannel == 16) {
-        channel.data =
-            _readChannelDataRLE<Uint16T>(reader, width.value, height.value);
+        channel.data = _readChannelDataRLE<Uint16T>(
+            reader, width.value ?? 0, height.value ?? 0);
       } else if (document.bitsPerChannel == 32) {
-        channel.data =
-            _readChannelDataRLE<Float32T>(reader, width.value, height.value);
+        channel.data = _readChannelDataRLE<Float32T>(
+            reader, width.value ?? 0, height.value ?? 0);
       }
     } else if (compressionType == CompressionType.ZIP) {
       // note that we need to subtract 2 bytes from the channel data size because we already read the uint16_t
       // for the compression type.
-      assert(channel.size >= 2, 'Invalid channel data size ${channel.size}');
-      final channelDataSize = channel.size - 2;
+      assert(channel.size != null && channel.size! >= 2,
+          'Invalid channel data size ${channel.size}');
+      final channelDataSize = channel.size! - 2;
       if (document.bitsPerChannel == 8) {
         channel.data = _readChannelDataZip<Uint8T>(
-            reader, width.value, height.value, channelDataSize);
+            reader, width.value ?? 0, height.value ?? 0, channelDataSize);
       } else if (document.bitsPerChannel == 16) {
         channel.data = _readChannelDataZip<Uint16T>(
-            reader, width.value, height.value, channelDataSize);
+            reader, width.value ?? 0, height.value ?? 0, channelDataSize);
       } else if (document.bitsPerChannel == 32) {
         // note that this is NOT a bug.
         // in 32-bit mode, Photoshop always interprets ZIP compression as being ZIP_WITH_PREDICTION, presumably to get better compression when writing files.
         channel.data = _readChannelDataZipPrediction<Float32T>(
-            reader, width.value, height.value, channelDataSize);
+            reader, width.value ?? 0, height.value ?? 0, channelDataSize);
       }
     } else if (compressionType == CompressionType.ZIP_WITH_PREDICTION) {
       // note that we need to subtract 2 bytes from the channel data size because we already read the uint16_t
       // for the compression type.
-      assert(channel.size >= 2, 'Invalid channel data size ${channel.size}');
-      final channelDataSize = channel.size - 2;
+      assert(channel.size != null && channel.size! >= 2,
+          'Invalid channel data size ${channel.size}');
+      final channelDataSize = channel.size! - 2;
       if (document.bitsPerChannel == 8) {
         channel.data = _readChannelDataZipPrediction<Uint8T>(
-            reader, width.value, height.value, channelDataSize);
+            reader, width.value ?? 0, height.value ?? 0, channelDataSize);
       } else if (document.bitsPerChannel == 16) {
         channel.data = _readChannelDataZipPrediction<Uint16T>(
-            reader, width.value, height.value, channelDataSize);
+            reader, width.value ?? 0, height.value ?? 0, channelDataSize);
       } else if (document.bitsPerChannel == 32) {
         channel.data = _readChannelDataZipPrediction<Float32T>(
-            reader, width.value, height.value, channelDataSize);
+            reader, width.value ?? 0, height.value ?? 0, channelDataSize);
       }
     } else {
       assert(false, 'Unsupported compression type $compressionType');
@@ -664,10 +678,11 @@ void extractLayer(Document document, File file, Layer layer) {
     // layer masks sometimes don't have any planar data stored for them, because they are
     // e.g. pure black or white, which means they only get assigned a default color.
     if (channel.data == null) {
-      if (channel.type < 0) {
+      if (channel.type != null && channel.type! < 0) {
         // this is a layer mask, so create planar data for it
-        final dataSize =
-            width.value * height.value * document.bitsPerChannel / 8;
+        final dataSize = width.value != null && height.value != null
+            ? width.value! * height.value! * document.bitsPerChannel! / 8
+            : 0;
         final channelData = Uint8List(dataSize.toInt());
         var defaultColor = _getChannelDefaultColor(layer, channel);
         for (var x = 0; x < channelData.length; x++) {
@@ -683,27 +698,27 @@ void extractLayer(Document document, File file, Layer layer) {
   // now move channel data to our own data structures for layer and vector masks, invalidating the info stored in
   // that channel.
   for (var i = 0; i < channelCount; ++i) {
-    var channel = layer.channels[i];
-    if (channel.type == ChannelType.LAYER_OR_VECTOR_MASK) {
+    var channel = layer.channels?[i];
+    if (channel?.type == ChannelType.LAYER_OR_VECTOR_MASK) {
       if (layer.vectorMask != null) {
         // layer has a vector mask, so this type always denotes the vector mask
-        assert(layer.layerMask.data == null,
+        assert(layer.layerMask?.data == null,
             'Vector mask data has already been assigned.');
-        _moveChannelToMask(channel, layer.vectorMask);
+        _moveChannelToMask(channel!, layer.vectorMask!);
       } else if (layer.layerMask != null) {
         // we don't have a vector but a layer mask, so this type denotes the layer mask
-        assert(layer.layerMask.data == null,
+        assert(layer.layerMask?.data == null,
             'Layer mask data has already been assigned.');
-        _moveChannelToMask(channel, layer.layerMask);
+        _moveChannelToMask(channel!, layer.layerMask!);
       } else {
         assert(false,
             'The code failed to create a mask for this type internally. This should never happen.');
       }
-    } else if (channel.type == ChannelType.LAYER_MASK) {
+    } else if (channel?.type == ChannelType.LAYER_MASK) {
       assert(layer.layerMask != null, 'Layer mask must already exist.');
-      assert(layer.layerMask.data == null,
+      assert(layer.layerMask?.data == null,
           'Layer mask data has already been assigned.');
-      _moveChannelToMask(channel, layer.layerMask);
+      _moveChannelToMask(channel!, layer.layerMask!);
     } else {
       // this channel is either a color channel, or the transparency mask. those should be stored in our channel array,
       // so there's nothing to do.
@@ -720,10 +735,10 @@ void _getChannelExtents(
     // the channel is either the layer or vector mask, depending on how many masks there are in the layer.
     if (layer.vectorMask != null) {
       // a vector mask exists, so this always denotes a vector mask
-      return _getExtents(layer.vectorMask, width, height);
+      return _getExtents(layer.vectorMask!, width, height);
     } else if (layer.layerMask != null) {
       // no vector mask exists, so the layer mask is the only mask left
-      return _getExtents(layer.layerMask, width, height);
+      return _getExtents(layer.layerMask!, width, height);
     }
 
     assert(false,
@@ -733,7 +748,7 @@ void _getChannelExtents(
     return;
   } else if (channel.type == ChannelType.LAYER_MASK) {
     // this type is only valid when there are two masks stored, in which case this always denotes the layer mask
-    return _getExtents(layer.layerMask, width, height);
+    return _getExtents(layer.layerMask!, width, height);
   }
 
   // this is a color channel which has the same size as the layer
@@ -741,16 +756,16 @@ void _getChannelExtents(
 }
 
 int _getWidth<T extends LayerRect>(T data) {
-  if (data.right > data.left) {
-    return (data.right - data.left);
+  if (data.right != null && data.left != null && data.right! > data.left!) {
+    return (data.right! - data.left!);
   }
 
   return 0;
 }
 
 int _getHeight<T extends LayerRect>(T data) {
-  if (data.bottom > data.top) {
-    return (data.bottom - data.top);
+  if (data.bottom != null && data.top != null && data.bottom! > data.top!) {
+    return (data.bottom! - data.top!);
   }
 
   return 0;
@@ -776,16 +791,16 @@ int _getChannelDefaultColor(Layer layer, Channel channel) {
     return 0;
   } else if (channel.type == ChannelType.LAYER_OR_VECTOR_MASK) {
     if (layer.vectorMask != null) {
-      return layer.vectorMask.defaultColor;
+      return layer.vectorMask?.defaultColor ?? 0;
     } else if (layer.layerMask != null) {
-      return layer.layerMask.defaultColor;
+      return layer.layerMask?.defaultColor ?? 0;
     }
 
     assert(false,
         'The code failed to create a mask for this type internally. This should never happen.');
     return 0;
   } else if (channel.type == ChannelType.LAYER_MASK) {
-    return layer.layerMask.defaultColor;
+    return layer.layerMask?.defaultColor ?? 0;
   }
 
   return 0;

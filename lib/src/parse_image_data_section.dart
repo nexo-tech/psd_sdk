@@ -29,20 +29,20 @@ ImageDataSection? parseImageDataSection(Document document, File file) {
   }
 
   var reader = SyncFileReader(file);
-  reader.setPosition(section.offset);
+  reader.setPosition(section.offset ?? 0);
 
-  var imageData = ImageDataSection();
+  ImageDataSection? imageData = ImageDataSection();
   final width = document.width;
   final height = document.height;
   final bitsPerChannel = document.bitsPerChannel;
   final channelCount = document.channelCount;
   final compressionType = reader.readUint16();
   if (compressionType == CompressionType.RAW) {
-    imageData = _readImageDataSectionRaw(
-        reader, width, height, channelCount, bitsPerChannel ~/ 8);
+    imageData = _readImageDataSectionRaw(reader, width ?? 0, height ?? 0,
+        channelCount ?? 0, (bitsPerChannel ?? 0) ~/ 8);
   } else if (compressionType == CompressionType.RLE) {
-    imageData = _readImageDataSectionRLE(
-        reader, width, height, channelCount, bitsPerChannel ~/ 8);
+    imageData = _readImageDataSectionRLE(reader, width ?? 0, height ?? 0,
+        channelCount ?? 0, (bitsPerChannel ?? 0) ~/ 8);
   } else {
     psdError(['ImageData', 'Unhandled compression type ${compressionType}.']);
   }
@@ -58,15 +58,18 @@ ImageDataSection? parseImageDataSection(Document document, File file) {
   // endian-convert the data
   switch (bitsPerChannel) {
     case 8:
-      _endianConvert<Uint8T>(imageData.images, width, height, channelCount);
+      _endianConvert<Uint8T>(
+          imageData.images, width ?? 0, height ?? 0, channelCount ?? 0);
       break;
 
     case 16:
-      _endianConvert<Uint16T>(imageData.images, width, height, channelCount);
+      _endianConvert<Uint16T>(
+          imageData.images, width ?? 0, height ?? 0, channelCount ?? 0);
       break;
 
     case 32:
-      _endianConvert<Float32T>(imageData.images, width, height, channelCount);
+      _endianConvert<Float32T>(
+          imageData.images, width ?? 0, height ?? 0, channelCount ?? 0);
       break;
 
     default:
@@ -85,12 +88,11 @@ ImageDataSection? _readImageDataSectionRaw(SyncFileReader reader, int width,
   }
 
   var imageData = ImageDataSection();
-  imageData.images = List(channelCount);
+  imageData.images = List<PlanarImage>.filled(channelCount, PlanarImage());
 
   // read data for all channels at once
   for (var i = 0; i < channelCount; ++i) {
-    imageData.images[i] = PlanarImage();
-    imageData.images[i].data = reader.readBytes(size * bytesPerPixel);
+    imageData.images?[i].data = reader.readBytes(size * bytesPerPixel);
   }
 
   return imageData;
@@ -102,7 +104,7 @@ ImageDataSection? _readImageDataSectionRLE(SyncFileReader reader, int width,
   // we store the size of the RLE data per channel, and assume a maximum of 256 channels.
   assert(channelCount < 256,
       'Image data section has too many channels ($channelCount).');
-  var channelSize = List<int>(256);
+  var channelSize = List<int>.filled(256, 0);
   var totalSize = 0;
   for (var i = 0; i < channelCount; ++i) {
     var size = 0;
@@ -121,17 +123,19 @@ ImageDataSection? _readImageDataSectionRLE(SyncFileReader reader, int width,
 
   final size = width * height;
   var imageData = ImageDataSection();
-  imageData.images = List(channelCount);
+  imageData.images = List<PlanarImage>.filled(channelCount, PlanarImage());
 
   for (var i = 0; i < channelCount; ++i) {
-    imageData.images[i] = PlanarImage();
-    imageData.images[i].data = Uint8List(size * bytesPerPixel);
+    imageData.images?[i].data = Uint8List(size * bytesPerPixel);
 
     // read RLE data, and uncompress into planar buffer
     final rleSize = channelSize[i];
     var rleData = reader.readBytes(rleSize);
+    if (rleData == null) {
+      continue;
+    }
 
-    decompressRle(rleData, rleSize, imageData.images[i].data,
+    decompressRle(rleData, rleSize, imageData.images?[i].data ?? Uint8List(0),
         width * height * bytesPerPixel);
   }
 
