@@ -112,18 +112,33 @@ void main() async {
 
 ### Core Classes
 
-- `PsdDocument`: Main class for PSD file operations
-- `PsdLayer`: Represents a PSD layer
-- `PsdChannel`: Handles channel data
-- `PsdMask`: Manages layer masks
+- `File`: Base class for handling binary file data
+- `Document`: Main class for PSD file operations and parsing
+- `ExportDocument`: Class for creating and exporting PSD files
+- `Layer`: Represents a PSD layer with properties and data
+- `LayerRect`: Interface for layer and mask dimensions
+- `LayerMaskSection`: Container for layer and mask information
+- `Channel`: Represents a channel in a Photoshop layer
+- `AlphaChannel`: Represents an alpha channel with color and opacity information
+- `Mask`: Base class for layer masks
+- `LayerMask`: Represents a layer mask
+- `VectorMask`: Represents a vector mask
+
+### Utility Classes
+
+- `ImageUtil`: Utility class for handling image data operations
+- `Section`: Base class for PSD file sections
 
 ### Enums
 
 - `ColorMode`: Document color modes (Bitmap, Grayscale, RGB, etc.)
-- `CompressionType`: Data compression types
 - `ChannelType`: Channel data types
-- `ExportColorMode`: Export color modes
-- `ExportChannel`: Export channel types
+- `LayerType`: Layer types
+- `ExportColorMode`: Export color modes (Grayscale, RGB)
+- `ExportChannel`: Export channel types (Gray, Red, Green, Blue, Alpha)
+- `CompressionType`: Data compression types (Raw, RLE, ZIP, ZIP with prediction)
+- `BlendMode`: Layer blend modes (Normal, Multiply, Screen, etc.)
+- `AlphaChannelMode`: Alpha channel modes
 
 ## Contributing
 
