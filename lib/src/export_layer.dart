@@ -3,7 +3,7 @@ import 'dart:typed_data';
 /// A struct representing a layer as exported to the Layer Mask section.
 class ExportLayer {
   // the SDK currently supports R, G, B, A
-  static const int MAX_CHANNEL_COUNT = 4;
+  static const int maxChannelCount = 4;
 
   int? top;
   int? left;
@@ -11,7 +11,7 @@ class ExportLayer {
   int? right;
   String? name;
 
-  var channelData = List<Uint8List?>.filled(MAX_CHANNEL_COUNT, null);
-  var channelSize = Uint32List(MAX_CHANNEL_COUNT);
-  var channelCompression = Uint16List(MAX_CHANNEL_COUNT);
+  var channelData = List<Uint8List?>.filled(maxChannelCount, null);
+  var channelSize = Uint32List(maxChannelCount);
+  var channelCompression = Uint16List(maxChannelCount);
 }

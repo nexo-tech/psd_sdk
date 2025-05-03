@@ -1,7 +1,7 @@
 import 'package:psd_sdk/src/key.dart';
 import 'package:psd_sdk/src/log.dart';
 import 'package:psd_sdk/src/sync_file_reader.dart';
-
+import 'package:psd_sdk/src/color_mode.dart';
 import 'document.dart';
 import 'file.dart';
 
@@ -60,7 +60,7 @@ Document? createDocument(File file) {
   document.height = reader.readUint32();
   document.width = reader.readUint32();
   document.bitsPerChannel = reader.readUint16();
-  document.colorMode = reader.readUint16();
+  document.colorMode = ColorMode.fromValue(reader.readUint16());
 
   // grab offsets into different sections
   {

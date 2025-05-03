@@ -1,11 +1,19 @@
 /// A namespace denoting a channel that is exported to the Layer Mask section.
-class ExportChannel {
-  // supported in Grayscale documents
-  static const GRAY = 0;
-  // supported in RGB documents
-  static const RED = 1;
-  static const GREEN = 2;
-  static const BLUE = 3;
-  // supported in all documents
-  static const ALPHA = 4;
+enum ExportChannel {
+  gray(0),
+  red(1),
+  green(2),
+  blue(3),
+  alpha(4);
+
+  const ExportChannel(this.value);
+  final int value;
+
+  static ExportChannel? fromValue(int value) {
+    try {
+      return ExportChannel.values.firstWhere((e) => e.value == value);
+    } catch (_) {
+      return null;
+    }
+  }
 }

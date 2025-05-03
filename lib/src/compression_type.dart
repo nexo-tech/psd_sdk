@@ -1,14 +1,25 @@
 /// A class holding compression types known by Photoshop.
-class CompressionType {
+enum CompressionType {
   /// Raw data.
-  static const RAW = 0;
+  raw(0),
 
   /// RLE-compressed data (using the PackBits algorithm).
-  static const RLE = 1;
+  rle(1),
 
   /// ZIP-compressed data.
-  static const ZIP = 2;
+  zip(2),
 
   /// ZIP-compressed data with prediction (delta-encoding).
-  static const ZIP_WITH_PREDICTION = 3;
+  zipWithPrediction(3);
+
+  const CompressionType(this.value);
+  final int value;
+
+  static CompressionType? fromValue(int value) {
+    try {
+      return CompressionType.values.firstWhere((e) => e.value == value);
+    } catch (_) {
+      return null;
+    }
+  }
 }

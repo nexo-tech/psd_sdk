@@ -614,8 +614,8 @@ void extractLayer(Document document, File file, Layer layer) {
     _getChannelExtents(layer, channel, width, height);
     // channel data is stored in 4 different formats, which is denoted by a 2-byte integer
     assert(channel.data == null, 'Channel data has already been loaded.');
-    final compressionType = reader.readUint16();
-    if (compressionType == CompressionType.RAW) {
+    final compressionType = CompressionType.fromValue(reader.readUint16());
+    if (compressionType == CompressionType.raw) {
       if (document.bitsPerChannel == 8) {
         channel.data = _readChannelDataRaw<Uint8T>(
             reader, width.value ?? 0, height.value ?? 0);
@@ -626,7 +626,7 @@ void extractLayer(Document document, File file, Layer layer) {
         channel.data = _readChannelDataRaw<Float32T>(
             reader, width.value ?? 0, height.value ?? 0);
       }
-    } else if (compressionType == CompressionType.RLE) {
+    } else if (compressionType == CompressionType.rle) {
       if (document.bitsPerChannel == 8) {
         channel.data = _readChannelDataRLE<Uint8T>(
             reader, width.value ?? 0, height.value ?? 0);
@@ -637,7 +637,7 @@ void extractLayer(Document document, File file, Layer layer) {
         channel.data = _readChannelDataRLE<Float32T>(
             reader, width.value ?? 0, height.value ?? 0);
       }
-    } else if (compressionType == CompressionType.ZIP) {
+    } else if (compressionType == CompressionType.zip) {
       // note that we need to subtract 2 bytes from the channel data size because we already read the uint16_t
       // for the compression type.
       assert(channel.size != null && channel.size! >= 2,
@@ -655,7 +655,7 @@ void extractLayer(Document document, File file, Layer layer) {
         channel.data = _readChannelDataZipPrediction<Float32T>(
             reader, width.value ?? 0, height.value ?? 0, channelDataSize);
       }
-    } else if (compressionType == CompressionType.ZIP_WITH_PREDICTION) {
+    } else if (compressionType == CompressionType.zipWithPrediction) {
       // note that we need to subtract 2 bytes from the channel data size because we already read the uint16_t
       // for the compression type.
       assert(channel.size != null && channel.size! >= 2,
@@ -701,7 +701,7 @@ void extractLayer(Document document, File file, Layer layer) {
   // that channel.
   for (var i = 0; i < channelCount; ++i) {
     var channel = layer.channels?[i];
-    if (channel?.type == ChannelType.LAYER_OR_VECTOR_MASK) {
+    if (channel?.type == ChannelType.layerOrVectorMask) {
       if (layer.vectorMask != null) {
         // layer has a vector mask, so this type always denotes the vector mask
         assert(layer.layerMask?.data == null,
@@ -716,7 +716,7 @@ void extractLayer(Document document, File file, Layer layer) {
         assert(false,
             'The code failed to create a mask for this type internally. This should never happen.');
       }
-    } else if (channel?.type == ChannelType.LAYER_MASK) {
+    } else if (channel?.type == ChannelType.layerMask) {
       assert(layer.layerMask != null, 'Layer mask must already exist.');
       assert(layer.layerMask?.data == null,
           'Layer mask data has already been assigned.');
@@ -730,10 +730,10 @@ void extractLayer(Document document, File file, Layer layer) {
 
 void _getChannelExtents(
     Layer layer, Channel channel, _Ref<int> width, _Ref<int> height) {
-  if (channel.type == ChannelType.TRANSPARENCY_MASK) {
+  if (channel.type == ChannelType.transparencyMask) {
     // the channel is the transparency mask, which has the same size as the layer
     return _getExtents(layer, width, height);
-  } else if (channel.type == ChannelType.LAYER_OR_VECTOR_MASK) {
+  } else if (channel.type == ChannelType.layerOrVectorMask) {
     // the channel is either the layer or vector mask, depending on how many masks there are in the layer.
     if (layer.vectorMask != null) {
       // a vector mask exists, so this always denotes a vector mask
@@ -748,7 +748,7 @@ void _getChannelExtents(
     width.set(0);
     height.set(0);
     return;
-  } else if (channel.type == ChannelType.LAYER_MASK) {
+  } else if (channel.type == ChannelType.layerMask) {
     // this type is only valid when there are two masks stored, in which case this always denotes the layer mask
     return _getExtents(layer.layerMask!, width, height);
   }
@@ -784,14 +784,14 @@ void _moveChannelToMask<T extends Mask>(Channel channel, T mask) {
   mask.fileOffset = channel.fileOffset;
 
   channel.data = null;
-  channel.type = ChannelType.INVALID;
+  channel.type = ChannelType.invalid;
   channel.fileOffset = 0;
 }
 
 int _getChannelDefaultColor(Layer layer, Channel channel) {
-  if (channel.type == ChannelType.TRANSPARENCY_MASK) {
+  if (channel.type == ChannelType.transparencyMask) {
     return 0;
-  } else if (channel.type == ChannelType.LAYER_OR_VECTOR_MASK) {
+  } else if (channel.type == ChannelType.layerOrVectorMask) {
     if (layer.vectorMask != null) {
       return layer.vectorMask?.defaultColor ?? 0;
     } else if (layer.layerMask != null) {
@@ -801,7 +801,7 @@ int _getChannelDefaultColor(Layer layer, Channel channel) {
     assert(false,
         'The code failed to create a mask for this type internally. This should never happen.');
     return 0;
-  } else if (channel.type == ChannelType.LAYER_MASK) {
+  } else if (channel.type == ChannelType.layerMask) {
     return layer.layerMask?.defaultColor ?? 0;
   }
 

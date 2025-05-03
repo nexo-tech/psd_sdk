@@ -36,11 +36,11 @@ ImageDataSection? parseImageDataSection(Document document, File file) {
   final height = document.height;
   final bitsPerChannel = document.bitsPerChannel;
   final channelCount = document.channelCount;
-  final compressionType = reader.readUint16();
-  if (compressionType == CompressionType.RAW) {
+  final compressionType = CompressionType.fromValue(reader.readUint16());
+  if (compressionType == CompressionType.raw) {
     imageData = _readImageDataSectionRaw(reader, width ?? 0, height ?? 0,
         channelCount ?? 0, (bitsPerChannel ?? 0) ~/ 8);
-  } else if (compressionType == CompressionType.RLE) {
+  } else if (compressionType == CompressionType.rle) {
     imageData = _readImageDataSectionRLE(reader, width ?? 0, height ?? 0,
         channelCount ?? 0, (bitsPerChannel ?? 0) ~/ 8);
   } else {

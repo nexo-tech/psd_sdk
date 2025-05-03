@@ -13,8 +13,8 @@ import 'image_resource_type.dart';
 import 'key.dart';
 
 /// Creates a new document suited for exporting a PSD file.
-ExportDocument createExportDocument(
-    int canvasWidth, int canvasHeight, int bitsPerChannel, int colorMode) {
+ExportDocument createExportDocument(int canvasWidth, int canvasHeight,
+    int bitsPerChannel, ExportColorMode colorMode) {
   var document = ExportDocument();
 
   document.width = canvasWidth;
@@ -65,13 +65,13 @@ int addLayer(ExportDocument document, String name) {
 void updateLayer<T extends TypedData>(
     ExportDocument document,
     int layerIndex,
-    int channel,
+    ExportChannel channel,
     int left,
     int top,
     int right,
     int bottom,
     TypedData planarData,
-    int compression) {
+    CompressionType compression) {
   if (planarData is Uint8List) {
     _updateLayerImpl<Uint8T>(document, layerIndex, channel, left, top, right,
         bottom, planarData, compression);
@@ -160,15 +160,15 @@ void writeDocument(ExportDocument document, File file) {
 
   // channel count
   final documentChannelCount =
-      (document.colorMode ?? 0 + document.alphaChannelCount);
+      (document.colorMode?.value ?? 0 + document.alphaChannelCount);
   _writeToFileBE<Uint16T>(writer, documentChannelCount);
 
   // header
-  final mode = (document.colorMode);
+  final mode = (document.colorMode?.value ?? 0);
   _writeToFileBE<Uint32T>(writer, document.height ?? 0);
   _writeToFileBE<Uint32T>(writer, document.width ?? 0);
   _writeToFileBE<Uint16T>(writer, document.bitsPerChannel ?? 0);
-  _writeToFileBE<Uint16T>(writer, mode ?? 0);
+  _writeToFileBE<Uint16T>(writer, mode);
 
   if (document.bitsPerChannel == 32) {
     // in 32-bit mode, Photoshop insists on having a color mode data section with magic info.
@@ -194,7 +194,7 @@ void writeDocument(ExportDocument document, File file) {
       _writeToFileBE<Uint16T>(writer, 'u'.codeUnitAt(0));
       _writeToFileBE<Uint16T>(writer, 'l'.codeUnitAt(0));
       _writeToFileBE<Uint16T>(writer, 't'.codeUnitAt(0));
-      _writeToFileBE<Uint16T>(writer, '\0'.codeUnitAt(0));
+      _writeToFileBE<Uint16T>(writer, '0'.codeUnitAt(0));
 
       _writeToFileBE<Uint16T>(writer, (2)); // ?
       _writeToFileBE<Uint16T>(writer, (2)); // ?
@@ -528,7 +528,7 @@ void writeDocument(ExportDocument document, File file) {
     _writeToFileBE<Uint16T>(writer, channelCount);
 
     // per-channel info
-    for (var j = 0; j < ExportLayer.MAX_CHANNEL_COUNT; ++j) {
+    for (var j = 0; j < ExportLayer.maxChannelCount; ++j) {
       if (layer.channelData[j] != null) {
         final channelId = _getChannelId(j);
         _writeToFileBE<Int16T>(writer, channelId);
@@ -578,7 +578,7 @@ void writeDocument(ExportDocument document, File file) {
     }
 
     // per-channel data
-    for (var j = 0; j < ExportLayer.MAX_CHANNEL_COUNT; ++j) {
+    for (var j = 0; j < ExportLayer.maxChannelCount; ++j) {
       if (layer.channelData[j] != null) {
         _writeToFileBE<Uint16T>(writer, layer.channelCompression[j]);
         writer.write(layer.channelData[j], layer.channelSize[j]);
@@ -607,11 +607,11 @@ void writeDocument(ExportDocument document, File file) {
     var emptyMemory = Uint8List(size);
 
     // write merged image
-    _writeToFileBE<Uint16T>(writer, (CompressionType.RAW));
-    if (document.colorMode == ExportColorMode.GRAYSCALE) {
+    _writeToFileBE<Uint16T>(writer, (CompressionType.raw.value));
+    if (document.colorMode == ExportColorMode.grayscale) {
       final dataGray = document.mergedImageData[0] ?? emptyMemory;
       writer.write(dataGray, size);
-    } else if (document.colorMode == ExportColorMode.RGB) {
+    } else if (document.colorMode == ExportColorMode.rgb) {
       final dataR = document.mergedImageData[0] ?? emptyMemory;
       final dataG = document.mergedImageData[1] ?? emptyMemory;
       final dataB = document.mergedImageData[2] ?? emptyMemory;
@@ -643,21 +643,21 @@ void _updateMetaData(
   attribute.value = _createString(value);
 }
 
-int _getChannelIndex(int channel) {
+int _getChannelIndex(ExportChannel channel) {
   switch (channel) {
-    case ExportChannel.GRAY:
+    case ExportChannel.gray:
       return 0;
 
-    case ExportChannel.RED:
+    case ExportChannel.red:
       return 0;
 
-    case ExportChannel.GREEN:
+    case ExportChannel.green:
       return 1;
 
-    case ExportChannel.BLUE:
+    case ExportChannel.blue:
       return 2;
 
-    case ExportChannel.ALPHA:
+    case ExportChannel.alpha:
       return 3;
 
     default:
@@ -668,22 +668,22 @@ int _getChannelIndex(int channel) {
 void _updateLayerImpl<T extends NumDataType>(
     ExportDocument document,
     int layerIndex,
-    int channel,
+    ExportChannel channel,
     int left,
     int top,
     int right,
     int bottom,
     TypedData planarData,
-    int compression) {
-  if (document.colorMode == ExportColorMode.GRAYSCALE) {
-    assert((channel == ExportChannel.GRAY) || (channel == ExportChannel.ALPHA),
+    CompressionType compression) {
+  if (document.colorMode == ExportColorMode.grayscale) {
+    assert((channel == ExportChannel.gray) || (channel == ExportChannel.alpha),
         'Wrong channel for this color mode.');
-  } else if (document.colorMode == ExportColorMode.RGB) {
+  } else if (document.colorMode == ExportColorMode.rgb) {
     assert(
-        (channel == ExportChannel.RED) ||
-            (channel == ExportChannel.GREEN) ||
-            (channel == ExportChannel.BLUE) ||
-            (channel == ExportChannel.ALPHA),
+        (channel == ExportChannel.red) ||
+            (channel == ExportChannel.green) ||
+            (channel == ExportChannel.blue) ||
+            (channel == ExportChannel.alpha),
         'Wrong channel for this color mode.');
   }
 
@@ -698,20 +698,20 @@ void _updateLayerImpl<T extends NumDataType>(
   layer.left = left;
   layer.bottom = bottom;
   layer.right = right;
-  layer.channelCompression[channelIndex] = (compression);
+  layer.channelCompression[channelIndex] = compression.value;
 
   assert(right >= left, 'Invalid layer bounds.');
   assert(bottom >= top, 'Invalid layer bounds.');
   final width = (right - left);
   final height = (bottom - top);
 
-  if (compression == CompressionType.RAW) {
+  if (compression == CompressionType.raw) {
     // raw data, copy directly and convert to big endian
     _createDataRaw<T>(layer, channelIndex, planarData, width, height);
-  } else if (compression == CompressionType.RLE) {
+  } else if (compression == CompressionType.rle) {
     // compress with RLE
     _createDataRLE<T>(layer, channelIndex, planarData, width, height);
-  } else if (compression == CompressionType.ZIP) {
+  } else if (compression == CompressionType.zip) {
     // compress with ZIP
     // note that this has a template specialization for 32-bit float data that forwards to ZipWithPrediction.
     if (T == Float32T) {
@@ -720,7 +720,7 @@ void _updateLayerImpl<T extends NumDataType>(
     } else {
       _createDataZip<T>(layer, channelIndex, planarData, width, height);
     }
-  } else if (compression == CompressionType.ZIP_WITH_PREDICTION) {
+  } else if (compression == CompressionType.zipWithPrediction) {
     if (T == Float32T) {
       _createDataZipPredictionF32(
           layer, channelIndex, planarData as Float32List, width, height);
@@ -973,7 +973,7 @@ int _getIccProfileResourceSize(ExportDocument document) {
 
 int _getChannelCount(ExportLayer layer) {
   var count = 0;
-  for (var i = 0; i < ExportLayer.MAX_CHANNEL_COUNT; ++i) {
+  for (var i = 0; i < ExportLayer.maxChannelCount; ++i) {
     if (layer.channelData[i] != null) {
       ++count;
     }
@@ -985,16 +985,16 @@ int _getChannelCount(ExportLayer layer) {
 int _getChannelId(int channelIndex) {
   switch (channelIndex) {
     case 0:
-      return ChannelType.R;
+      return ChannelType.r;
 
     case 1:
-      return ChannelType.G;
+      return ChannelType.g;
 
     case 2:
-      return ChannelType.B;
+      return ChannelType.b;
 
     case 3:
-      return ChannelType.TRANSPARENCY_MASK;
+      return ChannelType.transparencyMask;
 
     default:
       return 0;
@@ -1105,7 +1105,7 @@ int _getLayerInfoSectionLength(ExportDocument document) {
 
 int _getChannelDataSize(ExportLayer layer) {
   var size = 0;
-  for (var i = 0; i < ExportLayer.MAX_CHANNEL_COUNT; ++i) {
+  for (var i = 0; i < ExportLayer.maxChannelCount; ++i) {
     if (layer.channelData[i] != null) {
       size += layer.channelSize[i];
     }

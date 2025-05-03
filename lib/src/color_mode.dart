@@ -1,26 +1,37 @@
 /// A class holding all color modes known by Photoshop.
-class ColorMode {
-  /// BITMAP = 0;
-  static const BITMAP = 0;
+enum ColorMode {
+  /// BITMAP = 0
+  bitmap(0),
 
-  /// GRAYSCALE = 1;
-  static const GRAYSCALE = 1;
+  /// GRAYSCALE = 1
+  grayscale(1),
 
-  /// INDEXED = 2;
-  static const INDEXED = 2;
+  /// INDEXED = 2
+  indexed(2),
 
-  /// RGB = 3;
-  static const RGB = 3;
+  /// RGB = 3
+  rgb(3),
 
-  /// CMYK = 4;
-  static const CMYK = 4;
+  /// CMYK = 4
+  cmyk(4),
 
-  /// MULTICHANNEL = 7;
-  static const MULTICHANNEL = 7;
+  /// MULTICHANNEL = 7
+  multichannel(7),
 
-  /// DUOTONE = 8;
-  static const DUOTONE = 8;
+  /// DUOTONE = 8
+  duotone(8),
 
-  /// LAB = 9;
-  static const LAB = 9;
+  /// LAB = 9
+  lab(9);
+
+  const ColorMode(this.value);
+  final int value;
+
+  static ColorMode? fromValue(int value) {
+    try {
+      return ColorMode.values.firstWhere((e) => e.value == value);
+    } catch (_) {
+      return null;
+    }
+  }
 }

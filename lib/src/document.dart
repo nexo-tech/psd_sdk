@@ -1,4 +1,5 @@
 import 'package:psd_sdk/src/section.dart';
+import 'package:psd_sdk/src/color_mode.dart';
 
 /// A struct storing the document-wide information and sections contained in a .PSD file.
 class Document {
@@ -12,7 +13,7 @@ class Document {
   int? height;
   int? channelCount;
   int? bitsPerChannel;
-  int? colorMode;
+  ColorMode? colorMode;
 
   /// Color mode data section.
   Section colorModeDataSection;

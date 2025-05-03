@@ -30,7 +30,7 @@ void main() {
     }
 
     document = createDocument(file)!;
-    if (document.colorMode != ColorMode.RGB) {
+    if (document.colorMode != ColorMode.rgb) {
       throw Exception('Document is not in RGB color mode.');
     }
 
@@ -128,10 +128,10 @@ void main() {
 
       extractLayer(document, file, layer!);
 
-      final indexR = findChannel(layer!, ChannelType.R);
-      final indexG = findChannel(layer!, ChannelType.G);
-      final indexB = findChannel(layer!, ChannelType.B);
-      final indexA = findChannel(layer!, ChannelType.TRANSPARENCY_MASK);
+      final indexR = findChannel(layer!, ChannelType.r);
+      final indexG = findChannel(layer!, ChannelType.g);
+      final indexB = findChannel(layer!, ChannelType.b);
+      final indexA = findChannel(layer!, ChannelType.transparencyMask);
 
       canvasData = List<Uint8List?>.filled(4, null);
       channelCount = 0;
@@ -174,10 +174,10 @@ void main() {
     });
 
     test('should have correct channel indices', () {
-      final indexR = findChannel(layer!, ChannelType.R);
-      final indexG = findChannel(layer!, ChannelType.G);
-      final indexB = findChannel(layer!, ChannelType.B);
-      final indexA = findChannel(layer!, ChannelType.TRANSPARENCY_MASK);
+      final indexR = findChannel(layer!, ChannelType.r);
+      final indexG = findChannel(layer!, ChannelType.g);
+      final indexB = findChannel(layer!, ChannelType.b);
+      final indexA = findChannel(layer!, ChannelType.transparencyMask);
 
       expect(indexR, 1);
       expect(indexG, 2);
