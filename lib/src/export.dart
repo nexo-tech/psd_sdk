@@ -290,7 +290,8 @@ void writeDocument(ExportDocument document, File file) {
       _writeToFileBE<Uint32T>(writer, sectionLength);
 
       if (hasMetaData) {
-        _writeImageResource(writer, ImageResource.xmpMetadata, metaDataSize);
+        _writeImageResource(
+            writer, ImageResource.xmpMetadata.value, metaDataSize);
 
         final start = writer.getPosition();
         {
@@ -317,7 +318,8 @@ void writeDocument(ExportDocument document, File file) {
       }
 
       if (hasIccProfile) {
-        _writeImageResource(writer, ImageResource.iccProfile, iccProfileSize);
+        _writeImageResource(
+            writer, ImageResource.iccProfile.value, iccProfileSize);
 
         final start = writer.getPosition();
         {
@@ -331,7 +333,7 @@ void writeDocument(ExportDocument document, File file) {
       }
 
       if (hasExifData) {
-        _writeImageResource(writer, ImageResource.exifData, exifDataSize);
+        _writeImageResource(writer, ImageResource.exifData.value, exifDataSize);
 
         final start = writer.getPosition();
         {
@@ -346,7 +348,7 @@ void writeDocument(ExportDocument document, File file) {
 
       if (hasThumbnail) {
         _writeImageResource(
-            writer, ImageResource.thumbnailResource, thumbnailSize);
+            writer, ImageResource.thumbnailResource.value, thumbnailSize);
 
         final start = writer.getPosition();
         {
@@ -382,7 +384,7 @@ void writeDocument(ExportDocument document, File file) {
         // write display info
         {
           _writeImageResource(
-              writer, ImageResource.displayInfo, displayInfoSize);
+              writer, ImageResource.displayInfo.value, displayInfoSize);
 
           final start = writer.getPosition();
 
@@ -413,8 +415,8 @@ void writeDocument(ExportDocument document, File file) {
 
         // write channel names
         {
-          _writeImageResource(
-              writer, ImageResource.alphaChannelAsciiNames, channelNamesSize);
+          _writeImageResource(writer,
+              ImageResource.alphaChannelAsciiNames.value, channelNamesSize);
 
           final start = writer.getPosition();
 
@@ -434,7 +436,9 @@ void writeDocument(ExportDocument document, File file) {
 
         // write unicode channel names
         {
-          _writeImageResource(writer, ImageResource.alphaChannelUnicodeNames,
+          _writeImageResource(
+              writer,
+              ImageResource.alphaChannelUnicodeNames.value,
               unicodeChannelNamesSize);
 
           final start = writer.getPosition();

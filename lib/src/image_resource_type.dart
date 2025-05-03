@@ -1,45 +1,56 @@
-class ImageResource {
-  static const iptcNaa = 1028;
-  static const captionDigest = 1061;
-  static const xmpMetadata = 1060;
-  static const printInformation = 1082;
-  static const printStyle = 1083;
-  static const printScale = 1062;
-  static const printFlags = 1011;
-  static const printFlagsInfo = 10000;
-  static const printInfo = 1071;
-  static const resolutionInfo = 1005;
-  static const displayInfo = 1077;
-  static const globalAngle = 1037;
-  static const globalAltitude = 1049;
-  static const colorHalftoningInfo = 1013;
-  static const colorTransferFunctions = 1016;
-  static const multichannelHalftoningInfo = 1012;
-  static const multichannelTransferFunctions = 1015;
-  static const layerStateInformation = 1024;
-  static const layerGroupInformation = 1026;
-  static const layerGroupEnabledId = 1072;
-  static const layerSelectionId = 1069;
-  static const gridGuidesInfo = 1032;
-  static const urlList = 1054;
-  static const slices = 1050;
-  static const pixelAspectRatio = 1064;
-  static const iccProfile = 1039;
-  static const iccUntaggedProfile = 1041;
-  static const idSeedNumber = 1044;
-  static const thumbnailResource = 1036;
-  static const versionInfo = 1057;
-  static const exifData = 1058;
-  static const backgroundColor = 1010;
-  static const alphaChannelAsciiNames = 1006;
-  static const alphaChannelUnicodeNames = 1045;
-  static const alphaIdentifiers = 1053;
-  static const copyrightFlag = 1034;
-  static const pathSelectionState = 1088;
-  static const onionSkins = 1078;
-  static const timelineInfo = 1075;
-  static const sheetDisclosure = 1076;
-  static const workingPath = 1025;
-  static const macPrintManagerInfo = 1001;
-  static const windowsDevmode = 1085;
+enum ImageResource {
+  iptcNaa(1028),
+  captionDigest(1061),
+  xmpMetadata(1060),
+  printInformation(1082),
+  printStyle(1083),
+  printScale(1062),
+  printFlags(1011),
+  printFlagsInfo(10000),
+  printInfo(1071),
+  resolutionInfo(1005),
+  displayInfo(1077),
+  globalAngle(1037),
+  globalAltitude(1049),
+  colorHalftoningInfo(1013),
+  colorTransferFunctions(1016),
+  multichannelHalftoningInfo(1012),
+  multichannelTransferFunctions(1015),
+  layerStateInformation(1024),
+  layerGroupInformation(1026),
+  layerGroupEnabledId(1072),
+  layerSelectionId(1069),
+  gridGuidesInfo(1032),
+  urlList(1054),
+  slices(1050),
+  pixelAspectRatio(1064),
+  iccProfile(1039),
+  iccUntaggedProfile(1041),
+  idSeedNumber(1044),
+  thumbnailResource(1036),
+  versionInfo(1057),
+  exifData(1058),
+  backgroundColor(1010),
+  alphaChannelAsciiNames(1006),
+  alphaChannelUnicodeNames(1045),
+  alphaIdentifiers(1053),
+  copyrightFlag(1034),
+  pathSelectionState(1088),
+  onionSkins(1078),
+  timelineInfo(1075),
+  sheetDisclosure(1076),
+  workingPath(1025),
+  macPrintManagerInfo(1001),
+  windowsDevmode(1085);
+
+  const ImageResource(this.value);
+  final int value;
+
+  static ImageResource? fromValue(int value) {
+    try {
+      return ImageResource.values.firstWhere((e) => e.value == value);
+    } catch (_) {
+      return null;
+    }
+  }
 }

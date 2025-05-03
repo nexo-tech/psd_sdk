@@ -39,7 +39,7 @@ ImageResourcesSection parseImageResourcesSection(Document document, File file) {
       return imageResources;
     }
 
-    final id = reader.readUint16();
+    final id = ImageResource.fromValue(reader.readUint16());
 
     // the resource name is stored as a Pascal string. note that the string is padded to make the size even.
     final nameLength = reader.readByte();

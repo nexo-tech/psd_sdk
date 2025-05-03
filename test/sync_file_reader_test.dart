@@ -1,5 +1,4 @@
 import 'dart:typed_data';
-import 'dart:io';
 import 'package:test/test.dart';
 import 'package:psd_sdk/src/sync_file_reader.dart'; // Adjust the import path as needed
 import 'package:psd_sdk/src/file.dart';
