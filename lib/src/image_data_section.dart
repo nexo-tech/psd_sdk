@@ -9,7 +9,7 @@ class PlanarImage {
 /// A struct representing the information extracted from the Image Data section.
 class ImageDataSection {
   /// An array of planar images, having imageCount entries.
-  List<PlanarImage>? images;
+  List<PlanarImage?>? images;
 
   /// The number of planar images stored in the array.
   int get imageCount => images?.length ?? 0;

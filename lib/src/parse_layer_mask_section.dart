@@ -24,12 +24,11 @@ import 'sync_file_reader.dart';
 /// by a call to ExtractLayer for each layer.
 /// It is valid to parse different sections of a document (e.g. using parseImageResourcesSection, parseImageDataSection,
 /// or parseLayerMaskSection) in parallel from different threads.
-LayerMaskSection? parseLayerMaskSection(Document document, File file) {
+LayerMaskSection parseLayerMaskSection(Document document, File file) {
   // if there are no layers or masks, this section is just 4 bytes: the length field, which is set to zero.
   final section = document.layerMaskInfoSection;
   if (section.length == 0) {
-    psdError(['PSD', 'Document does not contain a layer mask section.']);
-    return null;
+    throw Exception('Document does not contain a layer mask section.');
   }
 
   final reader = SyncFileReader(file);
@@ -50,7 +49,7 @@ LayerMaskSection? parseLayerMaskSection(Document document, File file) {
 
       assert(
           stackIndex >= 0 && stackIndex < 256, 'Stack index is out of bounds.');
-      layer.parent = layerStack[stackIndex];
+      layer!.parent = layerStack[stackIndex];
 
       var width = _Ref(0);
       var height = _Ref(0);
@@ -91,11 +90,12 @@ LayerMaskSection _parseLayer(Document document, SyncFileReader reader,
       layerCount = -layerCount;
     }
 
-    layerMaskSection.layers = List<Layer>.filled(layerCount, Layer());
+    layerMaskSection.layers = List<Layer?>.filled(layerCount, null);
 
     // read layer record for each layer
     for (var i = 0; i < layerMaskSection.layerCount; ++i) {
-      final layer = layerMaskSection.layers![i];
+      final layer = Layer();
+      layerMaskSection.layers![i] = layer;
 
       layer.parent = null;
       layer.utf16Name = null;
@@ -111,15 +111,17 @@ LayerMaskSection _parseLayer(Document document, SyncFileReader reader,
       // number of channels in the layer.
       // this includes channels for transparency, layer, and vector masks, if any.
       final channelCount = reader.readUint16();
-      layer.channels = List<Channel>.filled(channelCount, Channel());
+      layer.channels = List<Channel?>.filled(channelCount, null);
 
       // parse each channel
       for (var j = 0; j < channelCount; ++j) {
-        final channel = layer.channels![j];
+        final channel = Channel();
         channel.fileOffset = 0;
         channel.data = null;
         channel.type = reader.readInt16();
         channel.size = reader.readUint32();
+
+        layer.channels![j] = channel;
       }
 
       // blend mode signature must be '8BIM'
@@ -312,11 +314,11 @@ LayerMaskSection _parseLayer(Document document, SyncFileReader reader,
     // data later.
     for (var i = 0; i < layerMaskSection.layerCount; ++i) {
       final layer = layerMaskSection.layers![i];
-      final channelCount = layer.channelCount;
+      final channelCount = layer?.channelCount ?? 0;
       for (var j = 0; j < channelCount; ++j) {
-        var channel = layer.channels![j];
-        channel.fileOffset = reader.getPosition();
-        reader.skip(channel.size ?? 0);
+        var channel = layer?.channels![j];
+        channel?.fileOffset = reader.getPosition();
+        reader.skip(channel?.size ?? 0);
       }
     }
   }

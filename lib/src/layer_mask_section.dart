@@ -3,7 +3,7 @@ import 'layer.dart';
 /// A struct representing the information extracted from the Layer Mask section.
 class LayerMaskSection {
   /// An array of layers, having layerCount entries.
-  List<Layer>? layers;
+  List<Layer?>? layers;
 
   /// The number of layers stored in the array.
   int get layerCount => layers?.length ?? 0;

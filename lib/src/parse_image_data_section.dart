@@ -88,11 +88,16 @@ ImageDataSection? _readImageDataSectionRaw(SyncFileReader reader, int width,
   }
 
   var imageData = ImageDataSection();
-  imageData.images = List<PlanarImage>.filled(channelCount, PlanarImage());
+  imageData.images = List<PlanarImage?>.filled(channelCount, null);
 
   // read data for all channels at once
   for (var i = 0; i < channelCount; ++i) {
-    imageData.images?[i].data = reader.readBytes(size * bytesPerPixel);
+    final data = reader.readBytes(size * bytesPerPixel);
+    if (data == null) {
+      continue;
+    }
+    imageData.images?[i] = PlanarImage();
+    imageData.images?[i]!.data = data;
   }
 
   return imageData;
@@ -123,10 +128,12 @@ ImageDataSection? _readImageDataSectionRLE(SyncFileReader reader, int width,
 
   final size = width * height;
   var imageData = ImageDataSection();
-  imageData.images = List<PlanarImage>.filled(channelCount, PlanarImage());
+  imageData.images = List<PlanarImage?>.filled(channelCount, null);
 
   for (var i = 0; i < channelCount; ++i) {
-    imageData.images?[i].data = Uint8List(size * bytesPerPixel);
+    final image = PlanarImage();
+    image.data = Uint8List(size * bytesPerPixel);
+    imageData.images?[i] = image;
 
     // read RLE data, and uncompress into planar buffer
     final rleSize = channelSize[i];
@@ -135,21 +142,20 @@ ImageDataSection? _readImageDataSectionRLE(SyncFileReader reader, int width,
       continue;
     }
 
-    decompressRle(rleData, rleSize, imageData.images?[i].data ?? Uint8List(0),
-        width * height * bytesPerPixel);
+    decompressRle(rleData, rleSize, image.data, width * height * bytesPerPixel);
   }
 
   return imageData;
 }
 
 void _endianConvert<T extends NumDataType>(
-    List<PlanarImage>? images, int width, int height, int channelCount) {
+    List<PlanarImage?>? images, int width, int height, int channelCount) {
   if (images == null) {
     return;
   }
   final size = width * height;
   for (var i = 0; i < channelCount; ++i) {
-    var byteData = images[i].data?.buffer.asByteData();
+    var byteData = images[i]?.data?.buffer.asByteData();
     if (byteData == null) {
       continue;
     }
@@ -162,6 +168,6 @@ void _endianConvert<T extends NumDataType>(
       var pos = sizeofT * j;
       data[j] = getElemHostEndian<T>(byteData, pos);
     }
-    images[i].data = copied;
+    images[i]!.data = copied;
   }
 }

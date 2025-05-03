@@ -9,7 +9,7 @@ final int CHANNEL_NOT_FOUND = -1;
 int findChannel(Layer layer, int channelType) {
   for (var i = 0; i < layer.channelCount; ++i) {
     var channel = layer.channels![i];
-    if (channel.data != null && channel.type == channelType) {
+    if (channel!.data != null && channel.type == channelType) {
       return i;
     }
   }
@@ -108,70 +108,212 @@ int sampleReadPsd() {
   var hasTransparencyMask = false;
   final layerMaskSection = parseLayerMaskSection(document, file);
 
-  if (layerMaskSection != null) {
-    hasTransparencyMask = layerMaskSection.hasTransparencyMask ?? false;
+  hasTransparencyMask = layerMaskSection.hasTransparencyMask ?? false;
 
-    // extract all layers one by one. this should be done in parallel for
-    // maximum efficiency.
-    for (var i = 0; i < layerMaskSection.layerCount; ++i) {
-      var layer = layerMaskSection.layers![i];
-      extractLayer(document, file, layer);
+  // extract all layers one by one. this should be done in parallel for
+  // maximum efficiency.
+  for (var i = 0; i < layerMaskSection.layerCount; ++i) {
+    var layer = layerMaskSection.layers![i];
+    extractLayer(document, file, layer!);
 
-      // check availability of R, G, B, and A channels.
-      // we need to determine the indices of channels individually, because
-      // there is no guarantee that R is the first channel, G is the second, B
-      // is the third, and so on.
-      final indexR = findChannel(layer, ChannelType.R);
-      final indexG = findChannel(layer, ChannelType.G);
-      final indexB = findChannel(layer, ChannelType.B);
-      final indexA = findChannel(layer, ChannelType.TRANSPARENCY_MASK);
+    // check availability of R, G, B, and A channels.
+    // we need to determine the indices of channels individually, because
+    // there is no guarantee that R is the first channel, G is the second, B
+    // is the third, and so on.
+    final indexR = findChannel(layer, ChannelType.R);
+    final indexG = findChannel(layer, ChannelType.G);
+    final indexB = findChannel(layer, ChannelType.B);
+    final indexA = findChannel(layer, ChannelType.TRANSPARENCY_MASK);
 
-      // note that channel data is only as big as the layer it belongs to, e.g.
-      // it can be smaller or bigger than the canvas, depending on where it is
-      // positioned. therefore, we use the provided utility functions to
-      // expand/shrink the channel data to the canvas size. of course, you can
-      // work with the channel data directly if you need to.
-      var canvasData = List<Uint8List>.filled(4, Uint8List(0));
-      var channelCount = 0;
-      if ((indexR != CHANNEL_NOT_FOUND) &&
-          (indexG != CHANNEL_NOT_FOUND) &&
-          (indexB != CHANNEL_NOT_FOUND)) {
-        // RGB channels were found.
-        canvasData[0] =
-            expandChannelToCanvas(document, layer, layer.channels![indexR])!;
-        canvasData[1] =
-            expandChannelToCanvas(document, layer, layer.channels![indexG])!;
-        canvasData[2] =
-            expandChannelToCanvas(document, layer, layer.channels![indexB])!;
-        channelCount = 3;
+    // note that channel data is only as big as the layer it belongs to, e.g.
+    // it can be smaller or bigger than the canvas, depending on where it is
+    // positioned. therefore, we use the provided utility functions to
+    // expand/shrink the channel data to the canvas size. of course, you can
+    // work with the channel data directly if you need to.
+    var canvasData = List<Uint8List?>.filled(4, null);
+    var channelCount = 0;
+    if ((indexR != CHANNEL_NOT_FOUND) &&
+        (indexG != CHANNEL_NOT_FOUND) &&
+        (indexB != CHANNEL_NOT_FOUND)) {
+      // RGB channels were found.
+      canvasData[0] =
+          expandChannelToCanvas(document, layer, layer!.channels![indexR]!)!;
+      canvasData[1] =
+          expandChannelToCanvas(document, layer, layer.channels![indexG]!)!;
+      canvasData[2] =
+          expandChannelToCanvas(document, layer, layer.channels![indexB]!)!;
+      channelCount = 3;
 
-        if (indexA != CHANNEL_NOT_FOUND) {
-          // A channel was also found.
-          canvasData[3] =
-              expandChannelToCanvas(document, layer, layer.channels![indexA])!;
-          channelCount = 4;
+      if (indexA != CHANNEL_NOT_FOUND) {
+        // A channel was also found.
+        canvasData[3] =
+            expandChannelToCanvas(document, layer, layer.channels![indexA]!)!;
+        channelCount = 4;
+      }
+    }
+
+    // interleave the different pieces of planar canvas data into one RGB or
+    // RGBA image, depending on what channels we found, and what color mode
+    // the document is stored in.
+    // ignore: unused_local_variable
+
+    final image = channelCount == 3
+        ? interleaveRGB(
+            canvasData[0]!,
+            canvasData[1]!,
+            canvasData[2]!,
+            document.bitsPerChannel ?? 0,
+            0,
+            document.width ?? 0,
+            document.height ?? 0)
+        : interleaveRGBA(
+            canvasData[0]!,
+            canvasData[1]!,
+            canvasData[2]!,
+            canvasData[3]!,
+            document.bitsPerChannel ?? 0,
+            document.width ?? 0,
+            document.height ?? 0);
+
+    final image8 = document.bitsPerChannel == 8 ? image : null;
+    // ignore: unused_local_variable
+    final image16 = document.bitsPerChannel == 16 ? image : null;
+    // ignore: unused_local_variable
+    final image32 = document.bitsPerChannel == 32 ? image : null;
+
+    // get the layer name.
+    // Unicode data is preferred because it is not truncated by Photoshop, but
+    // unfortunately it is optional. fall back to the ASCII name in case no
+    // Unicode name was found.
+    String layerName;
+    if (layer!.utf16Name != null) {
+      layerName =
+          String.fromCharCodes(layer.utf16Name!.where((x) => x != 0x00));
+    } else {
+      layerName = layer.name ?? '';
+    }
+
+    // at this point, image8, image16 or image32 store either a 8-bit, 16-bit,
+    // or 32-bit image, respectively. the image data is stored in interleaved
+    // RGB or RGBA, and has the size "document.width*document.height". it is
+    // up to you to do whatever you want with the image data. in the sample,
+    // we simply write the image to a .TGA file.
+    if (channelCount == 3) {
+      if (document.bitsPerChannel == 8) {
+        var filename = '${getSampleOutputPath()}' 'layer${layerName}.tga';
+        tga_exporter.saveRGB(
+            filename, document.width ?? 0, document.height ?? 0, image8!);
+      }
+    } else if (channelCount == 4) {
+      if (document.bitsPerChannel == 8) {
+        var filename = '${getSampleOutputPath()}' 'layer${layerName}.tga';
+        tga_exporter.saveRGBA(
+            filename, document.width ?? 0, document.height ?? 0, image8!);
+      }
+    }
+
+    // in addition to the layer data, we also want to extract the user and/or
+    // vector mask. luckily, this has been handled already by the
+    // ExtractLayer() function. we just need to check whether a mask exists.
+    if (layer!.layerMask != null) {
+      // a layer mask exists, and data is available. work out the mask's
+      // dimensions.
+      final width = (layer.layerMask!.right! - layer.layerMask!.left!);
+      final height = (layer.layerMask!.bottom! - layer.layerMask!.top!);
+
+      // similar to layer data, the mask data can be smaller or bigger than
+      // the canvas. the mask data is always single-channel (monochrome), and
+      // has a width and height as calculated above.
+      var maskData = layer.layerMask!.data;
+      {
+        var filename =
+            '${getSampleOutputPath()}' 'layer${layerName}' '_usermask.tga';
+        tga_exporter.saveMonochrome(filename, width, height, maskData!);
+      }
+
+      // use ExpandMaskToCanvas create an image that is the same size as the
+      // canvas.
+      var maskCanvasData = expandMaskToCanvas(document, layer.layerMask!);
+      {
+        var filename =
+            '${getSampleOutputPath()}canvas${layerName}_usermask.tga';
+        tga_exporter.saveMonochrome(filename, document.width ?? 0,
+            document.height ?? 0, maskCanvasData!);
+      }
+    }
+
+    if (layer.vectorMask != null) {
+      // accessing the vector mask works exactly like accessing the layer
+      // mask.
+      final width = (layer.vectorMask!.right! - layer.vectorMask!.left!);
+      final height = (layer.vectorMask!.bottom! - layer.vectorMask!.top!);
+
+      var maskData = layer.vectorMask!.data;
+      {
+        var filename =
+            '${getSampleOutputPath()}' 'layer${layerName}' '_vectormask.tga';
+        tga_exporter.saveMonochrome(filename, width, height, maskData!);
+      }
+
+      var maskCanvasData = expandMaskToCanvas(document, layer.vectorMask!);
+      {
+        var filename =
+            '${getSampleOutputPath()}' 'canvas${layerName}' '_vectormask.tga';
+        tga_exporter.saveMonochrome(filename, document.width ?? 0,
+            document.height ?? 0, maskCanvasData!);
+      }
+    }
+  }
+
+  // extract the image data section, if available. the image data section stores
+  // the final, merged image, as well as additional alpha channels. this is only
+  // available when saving the document with "Maximize Compatibility" turned on.
+  if (document.imageDataSection.length != 0) {
+    var imageData = parseImageDataSection(document, file);
+    if (imageData != null) {
+      // interleave the planar image data into one RGB or RGBA image.
+      // store the rest of the (alpha) channels and the transparency mask
+      // separately.
+      final imageCount = imageData.imageCount;
+
+      // note that an image can have more than 3 channels, but still no
+      // transparency mask in case all extra channels are actual alpha channels.
+      var isRgb = false;
+      if (imageCount == 3) {
+        // imageData.images[0], imageData.images[1] and imageData.images[2]
+        // contain the R, G, and B channels of the merged image. they are always
+        // the size of the canvas/document, so we can interleave them using
+        // imageUtil::InterleaveRGB directly.
+        isRgb = true;
+      } else if (imageCount >= 4) {
+        // check if we really have a transparency mask that belongs to the
+        // "main" merged image.
+        if (hasTransparencyMask) {
+          // we have 4 or more images/channels, and a transparency mask.
+          // this means that images 0-3 are RGBA, respectively.
+          isRgb = false;
+        } else {
+          // we have 4 or more images stored in the document, but none of them
+          // is the transparency mask. this means we are dealing with RGB (!)
+          // data, and several additional alpha channels.
+          isRgb = true;
         }
       }
 
-      // interleave the different pieces of planar canvas data into one RGB or
-      // RGBA image, depending on what channels we found, and what color mode
-      // the document is stored in.
-      // ignore: unused_local_variable
-
-      final image = channelCount == 3
+      final image = isRgb
           ? interleaveRGB(
-              canvasData[0],
-              canvasData[1],
-              canvasData[2],
-              document.bitsPerChannel ?? 0,
+              imageData!.images![0]!.data!,
+              imageData!.images![1]!.data!,
+              imageData!.images![2]!.data!,
               0,
+              document.bitsPerChannel ?? 0,
               document.width ?? 0,
               document.height ?? 0)
           : interleaveRGBA(
-              canvasData[0],
-              canvasData[1],
-              canvasData[2],
-              canvasData[3],
+              imageData.images![0]!.data!,
+              imageData.images![1]!.data!,
+              imageData.images![2]!.data!,
+              imageData.images![3]!.data!,
               document.bitsPerChannel ?? 0,
               document.width ?? 0,
               document.height ?? 0);
@@ -182,186 +324,43 @@ int sampleReadPsd() {
       // ignore: unused_local_variable
       final image32 = document.bitsPerChannel == 32 ? image : null;
 
-      // get the layer name.
-      // Unicode data is preferred because it is not truncated by Photoshop, but
-      // unfortunately it is optional. fall back to the ASCII name in case no
-      // Unicode name was found.
-      String layerName;
-      if (layer.utf16Name != null) {
-        layerName =
-            String.fromCharCodes(layer.utf16Name!.where((x) => x != 0x00));
-      } else {
-        layerName = layer.name ?? '';
-      }
-
-      // at this point, image8, image16 or image32 store either a 8-bit, 16-bit,
-      // or 32-bit image, respectively. the image data is stored in interleaved
-      // RGB or RGBA, and has the size "document.width*document.height". it is
-      // up to you to do whatever you want with the image data. in the sample,
-      // we simply write the image to a .TGA file.
-      if (channelCount == 3) {
-        if (document.bitsPerChannel == 8) {
-          var filename = '${getSampleOutputPath()}' 'layer${layerName}.tga';
+      if (document.bitsPerChannel == 8) {
+        var filename = '${getSampleOutputPath()}' 'merged.tga';
+        if (isRgb) {
           tga_exporter.saveRGB(
               filename, document.width ?? 0, document.height ?? 0, image8!);
-        }
-      } else if (channelCount == 4) {
-        if (document.bitsPerChannel == 8) {
-          var filename = '${getSampleOutputPath()}' 'layer${layerName}.tga';
+        } else {
           tga_exporter.saveRGBA(
               filename, document.width ?? 0, document.height ?? 0, image8!);
         }
       }
 
-      // in addition to the layer data, we also want to extract the user and/or
-      // vector mask. luckily, this has been handled already by the
-      // ExtractLayer() function. we just need to check whether a mask exists.
-      if (layer.layerMask != null) {
-        // a layer mask exists, and data is available. work out the mask's
-        // dimensions.
-        final width = (layer.layerMask!.right! - layer.layerMask!.left!);
-        final height = (layer.layerMask!.bottom! - layer.layerMask!.top!);
-
-        // similar to layer data, the mask data can be smaller or bigger than
-        // the canvas. the mask data is always single-channel (monochrome), and
-        // has a width and height as calculated above.
-        var maskData = layer.layerMask!.data;
-        {
-          var filename =
-              '${getSampleOutputPath()}' 'layer${layerName}' '_usermask.tga';
-          tga_exporter.saveMonochrome(filename, width, height, maskData!);
-        }
-
-        // use ExpandMaskToCanvas create an image that is the same size as the
-        // canvas.
-        var maskCanvasData = expandMaskToCanvas(document, layer.layerMask!);
-        {
-          var filename =
-              '${getSampleOutputPath()}canvas${layerName}_usermask.tga';
-          tga_exporter.saveMonochrome(filename, document.width ?? 0,
-              document.height ?? 0, maskCanvasData!);
-        }
-      }
-
-      if (layer.vectorMask != null) {
-        // accessing the vector mask works exactly like accessing the layer
-        // mask.
-        final width = (layer.vectorMask!.right! - layer.vectorMask!.left!);
-        final height = (layer.vectorMask!.bottom! - layer.vectorMask!.top!);
-
-        var maskData = layer.vectorMask!.data;
-        {
-          var filename =
-              '${getSampleOutputPath()}' 'layer${layerName}' '_vectormask.tga';
-          tga_exporter.saveMonochrome(filename, width, height, maskData!);
-        }
-
-        var maskCanvasData = expandMaskToCanvas(document, layer.vectorMask!);
-        {
-          var filename =
-              '${getSampleOutputPath()}' 'canvas${layerName}' '_vectormask.tga';
-          tga_exporter.saveMonochrome(filename, document.width ?? 0,
-              document.height ?? 0, maskCanvasData!);
-        }
-      }
-    }
-
-    // extract the image data section, if available. the image data section stores
-    // the final, merged image, as well as additional alpha channels. this is only
-    // available when saving the document with "Maximize Compatibility" turned on.
-    if (document.imageDataSection.length != 0) {
-      var imageData = parseImageDataSection(document, file);
-      if (imageData != null) {
-        // interleave the planar image data into one RGB or RGBA image.
-        // store the rest of the (alpha) channels and the transparency mask
-        // separately.
-        final imageCount = imageData.imageCount;
-
-        // note that an image can have more than 3 channels, but still no
-        // transparency mask in case all extra channels are actual alpha channels.
-        var isRgb = false;
-        if (imageCount == 3) {
-          // imageData.images[0], imageData.images[1] and imageData.images[2]
-          // contain the R, G, and B channels of the merged image. they are always
-          // the size of the canvas/document, so we can interleave them using
-          // imageUtil::InterleaveRGB directly.
-          isRgb = true;
-        } else if (imageCount >= 4) {
-          // check if we really have a transparency mask that belongs to the
-          // "main" merged image.
-          if (hasTransparencyMask) {
-            // we have 4 or more images/channels, and a transparency mask.
-            // this means that images 0-3 are RGBA, respectively.
-            isRgb = false;
-          } else {
-            // we have 4 or more images stored in the document, but none of them
-            // is the transparency mask. this means we are dealing with RGB (!)
-            // data, and several additional alpha channels.
-            isRgb = true;
-          }
-        }
-
-        final image = isRgb
-            ? interleaveRGB(
-                imageData!.images![0].data!,
-                imageData!.images![1].data!,
-                imageData!.images![2].data!,
-                0,
-                document.bitsPerChannel ?? 0,
-                document.width ?? 0,
-                document.height ?? 0)
-            : interleaveRGBA(
-                imageData.images![0].data!,
-                imageData.images![1].data!,
-                imageData.images![2].data!,
-                imageData.images![3].data!,
-                document.bitsPerChannel ?? 0,
-                document.width ?? 0,
-                document.height ?? 0);
-
-        final image8 = document.bitsPerChannel == 8 ? image : null;
-        // ignore: unused_local_variable
-        final image16 = document.bitsPerChannel == 16 ? image : null;
-        // ignore: unused_local_variable
-        final image32 = document.bitsPerChannel == 32 ? image : null;
+      // extract image resources in order to acquire the alpha channel names.
+      var imageResources = parseImageResourcesSection(document, file);
+      // store all the extra alpha channels. in case we have a transparency
+      // mask, it will always be the first of the extra channels. alpha
+      // channel names can be accessed using
+      // imageResources.alphaChannels[index]. loop through all alpha
+      // channels, and skip all channels that were already merged (either RGB
+      // or RGBA).
+      final skipImageCount = isRgb ? 3 : 4;
+      for (var i = 0; i < imageCount - skipImageCount; ++i) {
+        var channel = imageResources.alphaChannels![i];
 
         if (document.bitsPerChannel == 8) {
-          var filename = '${getSampleOutputPath()}' 'merged.tga';
-          if (isRgb) {
-            tga_exporter.saveRGB(
-                filename, document.width ?? 0, document.height ?? 0, image8!);
-          } else {
-            tga_exporter.saveRGBA(
-                filename, document.width ?? 0, document.height ?? 0, image8!);
-          }
-        }
-
-        // extract image resources in order to acquire the alpha channel names.
-        var imageResources = parseImageResourcesSection(document, file);
-        // store all the extra alpha channels. in case we have a transparency
-        // mask, it will always be the first of the extra channels. alpha
-        // channel names can be accessed using
-        // imageResources.alphaChannels[index]. loop through all alpha
-        // channels, and skip all channels that were already merged (either RGB
-        // or RGBA).
-        final skipImageCount = isRgb ? 3 : 4;
-        for (var i = 0; i < imageCount - skipImageCount; ++i) {
-          var channel = imageResources.alphaChannels![i];
-
-          if (document.bitsPerChannel == 8) {
-            var filename = '${getSampleOutputPath()}'
-                '.extra_channel_'
-                '${channel.asciiName}.tga';
-            tga_exporter.saveMonochrome(
-                filename,
-                document.width ?? 0,
-                document.height ?? 0,
-                imageData.images![i + skipImageCount].data!);
-          }
+          var filename = '${getSampleOutputPath()}'
+              '.extra_channel_'
+              '${channel.asciiName}.tga';
+          tga_exporter.saveMonochrome(
+              filename,
+              document.width ?? 0,
+              document.height ?? 0,
+              imageData.images![i + skipImageCount]!.data!);
         }
       }
     }
   }
+
   return 0;
 }
 

@@ -33,7 +33,7 @@ class Layer implements LayerRect {
   int? right;
 
   /// An array of channels, having channelCount entries.
-  List<Channel>? channels;
+  List<Channel?>? channels;
 
   /// The number of channels stored in the array.
   int get channelCount => channels?.length ?? 0;
