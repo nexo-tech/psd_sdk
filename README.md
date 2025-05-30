@@ -1,6 +1,6 @@
 # psd_sdk
 
-[![pub package](https://img.shields.io/badge/pub-0.2.0-blueviolet.svg)](https://pub.dev/packages/psd_sdk)
+[![pub package](https://img.shields.io/badge/pub-0.2.1-blueviolet.svg)](https://pub.dev/packages/psd_sdk)
 [![style: very good analysis](https://img.shields.io/badge/style-very_good_analysis-B22C89.svg)](https://pub.dev/packages/very_good_analysis)
 [![License: BSD-3-Clause](https://img.shields.io/badge/License-BSD--3--Clause-blue.svg)](https://opensource.org/licenses/BSD-3-Clause)
 
@@ -30,7 +30,7 @@ Add the package to your `pubspec.yaml`:
 
 ```yaml
 dependencies:
-  psd_sdk: ^0.2.0
+  psd_sdk: ^0.2.1
 ```
 
 Then run:
