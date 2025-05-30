@@ -1,3 +1,7 @@
+## 0.2.1
+
+- Updated SDK constraints to support modern Dart runtimes
+
 ## 0.2.0
 
 - Converted static classes to proper Dart enums for better type safety and idiomatic Dart code
