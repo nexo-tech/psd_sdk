@@ -1,3 +1,7 @@
+## 0.2.2
+
+- Updated SDK versions for better compatibility
+
 ## 0.2.1
 
 - Updated SDK constraints to support modern Dart runtimes
