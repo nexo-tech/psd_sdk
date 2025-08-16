@@ -48,9 +48,14 @@ LayerMaskSection? parseLayerMaskSection(Document document, File file) {
       // note that it is much easier to build the hierarchy by traversing the layers backwards
       var layer = layerMaskSection.layers![layerMaskSection.layerCount - i - 1];
 
+      // Skip null layers which can occur in certain PSD files
+      if (layer == null) {
+        continue;
+      }
+
       assert(
           stackIndex >= 0 && stackIndex < 256, 'Stack index is out of bounds.');
-      layer!.parent = layerStack[stackIndex];
+      layer.parent = layerStack[stackIndex];
 
       var width = _Ref(0);
       var height = _Ref(0);
@@ -94,7 +99,7 @@ LayerMaskSection _parseLayer(Document document, SyncFileReader reader,
     layerMaskSection.layers = List<Layer?>.filled(layerCount, null);
 
     // read layer record for each layer
-    for (var i = 0; i < layerMaskSection.layerCount; ++i) {
+    for (var i = 0; i < layerCount; ++i) {
       final layer = Layer(document);
       layerMaskSection.layers![i] = layer;
 
@@ -268,18 +273,26 @@ LayerMaskSection _parseLayer(Document document, SyncFileReader reader,
       while (toRead > 0) {
         final signature = reader.readUint32();
         if (signature != keyValue('8BIM')) {
+          // Before giving up, check if we've just hit padding or the end
+          if (toRead <= 4) {
+            // We might have hit padding at the end, this is OK
+            break;
+          }
           psdError([
             'LayerMaskSection',
-            'Additional Layer Information section seems to be corrupt, signature does not match "8BIM".'
+            'Additional Layer Information section seems to be corrupt, signature does not match "8BIM" at position ${reader.getPosition() - 4}, toRead=$toRead'
           ]);
           return layerMaskSection;
         }
 
         final key = reader.readUint32();
 
-        // length needs to be rounded to a multiple of 4
-        var length = reader.readUint32();
-        length = roundUpToMultiple(length, 4);
+        // Read the length - rounding rules depend on the section type
+        final originalLength = reader.readUint32();
+        // For 'luni' sections, don't round - the length is exact
+        final length = (key == keyValue('luni'))
+            ? originalLength
+            : roundUpToMultiple(originalLength, 4);
 
         // read "Section divider setting" to identify whether a layer is a group, or a section divider
         if (key == keyValue('lsct')) {
@@ -288,7 +301,7 @@ LayerMaskSection _parseLayer(Document document, SyncFileReader reader,
           // skip the rest of the data
           reader.skip(length - 4);
         }
-        // read Unicode layer name
+        // read Unicode layer name (no padding needed - length is exact)
         else if (key == keyValue('luni')) {
           // PSD Unicode strings store 4 bytes for the number of characters, NOT bytes, followed by
           // 2-byte UTF16 Unicode data without the terminating null.
@@ -300,9 +313,21 @@ LayerMaskSection _parseLayer(Document document, SyncFileReader reader,
           }
           layer.utf16Name?[characterCountWithoutNull] = 0;
 
-          // skip possible padding bytes
-          reader
-              .skip(length - 4 - characterCountWithoutNull * sizeof<Uint16T>());
+          // Convert UTF-16 to String and update layer name
+          if (layer.utf16Name != null && characterCountWithoutNull > 0) {
+            // Remove the null terminator we added
+            final utf16Data =
+                layer.utf16Name!.sublist(0, characterCountWithoutNull);
+            layer.name = String.fromCharCodes(utf16Data);
+          }
+
+          // Skip any remaining bytes to reach the end of this section
+          // The originalLength already accounts for all data including any padding
+          final bytesRead = 4 + characterCountWithoutNull * sizeof<Uint16T>();
+          final remainingBytes = originalLength - bytesRead;
+          if (remainingBytes > 0) {
+            reader.skip(remainingBytes);
+          }
         } else {
           reader.skip(length);
         }
@@ -372,8 +397,8 @@ LayerMaskSection _parseLayer(Document document, SyncFileReader reader,
         final key = reader.readUint32();
 
         // again, length is rounded to a multiple of 4
-        var length = reader.readUint32();
-        length = roundUpToMultiple(length, 4);
+        final originalLength2 = reader.readUint32();
+        final length = roundUpToMultiple(originalLength2, 4);
 
         if (key == keyValue('Lr16')) {
           final offset = reader.getPosition();

@@ -1,6 +1,6 @@
 # psd_sdk
 
-[![pub package](https://img.shields.io/badge/pub-0.2.2-blueviolet.svg)](https://pub.dev/packages/psd_sdk)
+[![pub package](https://img.shields.io/badge/pub-0.2.3-blueviolet.svg)](https://pub.dev/packages/psd_sdk)
 [![style: very good analysis](https://img.shields.io/badge/style-very_good_analysis-B22C89.svg)](https://pub.dev/packages/very_good_analysis)
 [![License: BSD-3-Clause](https://img.shields.io/badge/License-BSD--3--Clause-blue.svg)](https://opensource.org/licenses/BSD-3-Clause)
 
@@ -16,6 +16,7 @@ A Dart library for reading and manipulating Photoshop PSD files. This library is
 - ✅ Transparency masks and additional alpha channels
 - ✅ Support for 8-bit, 16-bit, and 32-bit data
 - ✅ Grayscale and RGB color modes
+- ✅ Unicode layer names (Japanese, Chinese, etc.)
 - ✅ All Photoshop compression types (RAW, RLE, ZIP, ZIP with prediction)
 
 ### Export Capabilities
@@ -30,7 +31,7 @@ Add the package to your `pubspec.yaml`:
 
 ```yaml
 dependencies:
-  psd_sdk: ^0.2.2
+  psd_sdk: ^0.2.3
 ```
 
 Then run:
@@ -108,6 +109,30 @@ void main() async {
 }
 ```
 
+### Debug Logging
+
+The PSD SDK includes configurable logging for debugging purposes:
+
+```dart
+import 'package:psd_sdk/psd_sdk.dart';
+
+// Enable logging with custom handler
+PsdLogging.enable();
+PsdLogging.setLogHandler((level, channel, message) {
+  print('[$level] $channel: $message');
+});
+
+// Parse PSD file - any warnings/errors will be logged
+final document = Document.fromFile(file);
+final layerMaskSection = document.parseLayerMaskSection(file);
+
+// Disable logging when done
+PsdLogging.disable();
+
+// Get last error if needed
+final lastError = PsdLogging.getLastError();
+```
+
 ## API Reference
 
 ### Core Classes
@@ -123,6 +148,7 @@ void main() async {
 - `Mask`: Base class for layer masks
 - `LayerMask`: Represents a layer mask
 - `VectorMask`: Represents a vector mask
+- `PsdLogging`: Static class for controlling debug logging
 
 ### Utility Classes
 

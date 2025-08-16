@@ -18,3 +18,6 @@ example/sample_output/*
 !example/sample_output/.gitkeep
 .DS_Store
 */**/.DS_Store
+
+coverage
+

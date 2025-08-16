@@ -580,7 +580,7 @@ void updateLayerImpl<T extends NumDataType>(
     } else {
       // delta-encode, then compress with ZIP
       _createDataZipPrediction<T>(
-          layer, channelIndex, planarData as Float32List, width, height);
+          layer, channelIndex, planarData, width, height);
     }
   }
 }
@@ -589,7 +589,8 @@ void _createDataZipPrediction<T extends NumDataType>(ExportLayer layer,
     int channelIndex, TypedData planarData, int width, int height) {
   final size = width * height;
 
-  var deltaData = getTypedList<T>(Uint8List(size * sizeof<T>())) as List;
+  final deltaDataBytes = Uint8List(size * sizeof<T>());
+  var deltaData = getTypedList<T>(deltaDataBytes) as List;
   var allocation = deltaData;
 
   var deltaDataPos = 0;
@@ -612,7 +613,7 @@ void _createDataZipPrediction<T extends NumDataType>(ExportLayer layer,
   }
 
   Uint8List zipData =
-      archive.ZLibEncoder().encodeBytes(allocation as Uint8List);
+      archive.ZLibEncoder().encodeBytes(deltaDataBytes);
 
   layer.channelData[channelIndex] = zipData;
   layer.channelSize[channelIndex] = zipData.length;

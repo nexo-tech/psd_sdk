@@ -1,3 +1,17 @@
+## 0.2.3
+
+- **BREAKING FIX**: Fixed null check operator error when parsing PSD files with Unicode layer names
+- **NEW**: Added full support for Unicode (Japanese, Chinese, etc.) characters in layer names
+- **FIX**: Fixed parsing stopping after first few layers due to incorrect padding calculation for Unicode sections
+- **NEW**: Added configurable debug logging system with `PsdLogging` class
+- **NEW**: Added comprehensive test coverage for Unicode layer name handling
+- **IMPROVEMENT**: Removed all print statements from library code, replaced with proper logging
+- **NEW**: Added custom log handler support for better integration with application logging
+- Added example PSD file with Unicode layer names for testing (`example/test_unicode.psd`)
+- Improved error handling in layer mask section parsing
+- Enhanced layer hierarchy building with proper null checks
+- Added tests to verify no print statements in library code
+
 ## 0.2.2
 
 - Updated SDK versions for better compatibility

@@ -8,6 +8,7 @@ import 'export_metadata_attribute.dart';
 import 'export_color_mode.dart';
 import 'thumbnail.dart';
 import 'export.dart';
+import 'log.dart';
 import 'file.dart';
 import 'compression_type.dart';
 
@@ -222,7 +223,11 @@ class ExportDocument {
       updateLayerImpl<Float32T>(this, layerIndex, channel, left, top, right,
           bottom, planarData, compression);
     } else {
-      print('not supported');
+      psdWarning([
+        'ExportDocument',
+        'Unsupported data type for updateLayer:',
+        planarData.runtimeType.toString()
+      ]);
     }
   }
 
@@ -247,7 +252,11 @@ class ExportDocument {
       updateMergedImageImpl<Float32T>(
           this, planarDataR, planarDataG, planarDataB);
     } else {
-      print('unsupported');
+      psdWarning([
+        'ExportDocument',
+        'Unsupported data type for updateMergedImage:',
+        planarDataR.runtimeType.toString()
+      ]);
     }
   }
 
@@ -300,7 +309,11 @@ class ExportDocument {
     } else if (data is Float32List) {
       updateChannelImpl<Float32T>(this, channelIndex, data);
     } else {
-      print('unsupported');
+      psdWarning([
+        'ExportDocument',
+        'Unsupported data type for updateChannel:',
+        data.runtimeType.toString()
+      ]);
     }
   }
 }
